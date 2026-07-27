@@ -1,0 +1,13 @@
+{
+  "name": "@goal-tracker/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./eslint/base": "./eslint/base.js",
+    "./eslint/react": "./eslint/react.js",
+    "./typescript/base": "./typescript/base.json",
+    "./typescript/node": "./typescript/node.json",
+    "./typescript/react": "./typescript/react.json"
+  }
+}
