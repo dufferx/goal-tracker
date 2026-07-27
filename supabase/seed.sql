@@ -1,0 +1,2 @@
+-- M0 intentionally contains no application data.
+-- Product tables and development fixtures are introduced by their owning milestones.

@@ -11,17 +11,55 @@ Implement milestone M0 from `docs/GoalTracker_Implementation_Plan.md`.
 Requirements:
 
 - initialize pnpm monorepo;
+- use Node.js 24 LTS, ESM, and pin the pnpm version in `package.json`;
 - create `apps/web` with React, Vite, TypeScript;
-- create `apps/api` with a minimal TypeScript HTTP server;
+- create `apps/api` with a minimal Fastify TypeScript HTTP server;
 - create packages `domain`, `database`, `contracts`, `ui`, `config`;
-- configure shadcn/ui;
-- configure Drizzle without using Drizzle migrations;
-- initialize Supabase local directory and migration workflow;
-- create Docker Compose reference development setup;
-- add root scripts for dev, lint, typecheck, test, build;
-- add CI;
-- add health endpoint;
+- configure shadcn/ui for the shared `packages/ui` workspace using neutral placeholder tokens;
+- configure Drizzle for typed PostgreSQL access without installing, generating, or applying Drizzle migrations;
+- install and pin Supabase CLI as a root development dependency;
+- initialize the Supabase local directory, migration workflow, and seed file;
+- use Supabase CLI only for the local development stack; do not copy or maintain a production
+  self-hosted Supabase Compose stack in M0;
+- create a Docker Compose development reference for the web and API applications;
+- reserve production Docker Compose hardening and the production self-hosted Supabase stack for M12;
+- add root scripts for `dev`, `dev:apps`, `infra:start`, `infra:stop`, `db:reset`, `lint`,
+  `format`, `format:check`, `typecheck`, `test`, and `build`;
+- make `pnpm dev` start or verify local Supabase first and then keep web and API running;
+- configure shared ESLint, Prettier, TypeScript, and Vitest tooling;
+- add React Testing Library for web tests;
+- add GitHub Actions CI for install, format check, lint, typecheck, test, and build;
+- add a liveness health endpoint and automated API integration test;
+- add a real web render smoke test;
 - add `.env.example` and README.
+
+Implementation constraints:
+
+- use only pnpm workspace orchestration unless an additional build orchestrator is demonstrably
+  necessary;
+- pin dependency versions and commit the lockfile;
+- keep `packages/domain` independent from React, Fastify, Supabase, Drizzle, and other infrastructure;
+- configure shadcn/ui aliases in both `apps/web` and `packages/ui`, but do not establish final visual
+  design tokens in M0;
+- do not add a service worker, authentication, database tables, domain models, or product screens;
+- do not add placeholder abstractions for future milestones;
+- document the distinction between local Supabase CLI development and production self-hosting.
+
+Validation and exit criteria:
+
+- `pnpm install --frozen-lockfile` succeeds after the lockfile has been created;
+- `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` pass;
+- `pnpm supabase --version` succeeds using the project dependency;
+- `pnpm db:reset` succeeds against a clean local Supabase stack;
+- `GET /health` passes its automated integration test;
+- the web render smoke test passes;
+- `docker compose config` validates;
+- `git diff --check` passes;
+- README instructions are sufficient to start from a clean clone.
+
+If Docker or Supabase cannot run in the execution environment, still complete all repository work,
+run every independent validation, and report the exact skipped command and reason. Do not claim the
+local infrastructure exit criteria passed unless they were actually executed.
 
 Do not implement product features.
 

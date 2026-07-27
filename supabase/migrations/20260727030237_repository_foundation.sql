@@ -1,0 +1,2 @@
+-- M0 establishes the Supabase migration workflow without introducing application tables.
+-- Product schema changes are owned by their corresponding milestones.
