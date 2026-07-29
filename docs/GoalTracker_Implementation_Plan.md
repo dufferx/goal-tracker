@@ -1,457 +1,296 @@
 # Goal Tracker — Implementation Plan
 
-> **Source documents**
->
-> - `GoalTracker_Product_Requirements_Master.md`
-> - `GoalTracker_Technical_Architecture.md`
-> - `GoalTracker_Architecture_Blueprint.md`
+**Status:** Approved
+**Last updated:** 2026-07-29
+**Sequence:** D0, then M1 through M6 without overlap
 
----
+This is the canonical delivery plan. `implementation-plan.md` at the repository root is the
+discovery-era detailed planning record; this document governs execution.
 
-# 1. Objective
+## Working rules
 
-Implement the Goal Tracker MVP as a self-hosted React + Vite PWA backed by a TypeScript API, Supabase Auth/PostgreSQL, Drizzle for typed data access, and Supabase migrations as the schema source of truth.
+- Complete milestones in order and work only on the requested milestone.
+- Start each milestone from `development` after the prior milestone exit criteria pass.
+- Keep migrations, backend, frontend, tests, and documentation together when the milestone needs
+  them.
+- Do not add excluded features, future abstractions, unused dependencies, or compatibility layers
+  for the abandoned model.
+- Supabase SQL files are the only migration source of truth. Drizzle never generates migrations.
+- Do not claim completion when required validation has not run; report the exact limitation.
 
-The implementation must preserve these architectural principles:
+## D0 — Simplified product reset
 
-- financial events are the source of truth;
-- snapshots are reconstructable caches;
-- all financial writes go through the backend;
-- Projection Engine is pure and deterministic;
-- simulations are side-effect free;
-- offline support is limited to cached reads and deposit creation;
-- every important business rule exists in one authoritative place.
+**Goal:** Make the approved simplified product the only authoritative direction before schema or
+feature implementation.
 
----
+**Branch:** `docs/simplified-product-reset`
 
-# 2. Delivery strategy
+### Changes
 
-The project will be delivered in sequential milestones. Each milestone must:
-
-1. have a narrow scope;
-2. include migrations, backend, frontend, and tests when relevant;
-3. define explicit acceptance criteria;
-4. pass lint, typecheck, unit tests, integration tests, and build;
-5. update documentation before merge.
-
-No milestone should begin until the previous milestone's exit criteria are satisfied.
-
----
-
-# 3. Proposed repository structure
-
-```text
-goal-tracker/
-├── apps/
-│   ├── web/
-│   └── api/
-├── packages/
-│   ├── domain/
-│   ├── database/
-│   ├── contracts/
-│   ├── ui/
-│   └── config/
-├── supabase/
-│   ├── migrations/
-│   ├── seed.sql
-│   └── config.toml
-├── docs/
-├── tests/
-├── docker-compose.yml
-├── pnpm-workspace.yaml
-└── package.json
-```
-
-Use `pnpm` workspaces.
-
----
-
-# 4. Milestone summary
-
-| Milestone | Name | Primary outcome |
-|---|---|---|
-| M0 | Repository Foundation | Runnable monorepo and local infrastructure |
-| M1 | Identity and User Isolation | Auth, profiles, RLS, private user data |
-| M2 | Goals Core | Goal lifecycle and dashboard foundation |
-| M3 | Planning Model | Components, checkpoints, tasks |
-| M4 | Financial Engine | Deposits, withdrawals, purchases, expenses, snapshots |
-| M5 | Transfers and Corrections | Transfers, refunds, voids, revisions |
-| M6 | Projection Engine | Contributions, tranquility, recommendations |
-| M7 | Simulation | Temporary scenario comparison |
-| M8 | Activity and Completion | Timeline, close, archive, trash |
-| M9 | Offline PWA | Cached reads and offline deposits |
-| M10 | Import, Export, Backup | JSON, CSV, templates, restore |
-| M11 | UX Integration | Claude Design implementation and responsive polish |
-| M12 | Hardening and Release | Security, tests, docs, Docker release |
-
----
-
-# 5. Milestone details
-
-## M0 — Repository Foundation
-
-### Scope
-
-- initialize monorepo;
-- configure React + Vite + TypeScript;
-- configure TypeScript API;
-- configure pnpm workspaces;
-- add shadcn/ui;
-- add Drizzle;
-- initialize Supabase local development;
-- establish Supabase migrations;
-- add Docker Compose;
-- configure linting, formatting, testing, typechecking;
-- add CI.
-
-### Deliverables
-
-- runnable `apps/web`;
-- runnable `apps/api`;
-- shared packages;
-- local Supabase stack;
-- health endpoint;
-- root scripts;
-- `README.md`;
-- `.env.example`.
+- rewrite product requirements around goals, items, ledger, guidance, and temporary simulation;
+- rewrite technical architecture and blueprint with the four-table application model;
+- replace the old milestone sequence with D0 and M1–M6;
+- align contributor instructions, Codex prompts, design prompt, and README;
+- retain approved discovery files as evidence and label them non-canonical;
+- leave source code, dependencies, and migrations unchanged.
 
 ### Exit criteria
 
-- `pnpm install` works;
-- `pnpm dev` starts web, API, and Supabase;
-- `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` pass;
-- Docker Compose startup is documented.
-
----
-
-## M1 — Identity and User Isolation
+- no authoritative document instructs agents to implement tasks, standalone checkpoints,
+  components, transfers, persistent simulations, or financial snapshots;
+- all approved requirements R1–R32 map to the canonical requirements and delivery milestones;
+- product and technical documents have an explicit precedence relationship;
+- links and internal references resolve;
+- Markdown/source whitespace passes `git diff --check`;
+- repository validation is attempted and unavailable tooling is reported.
 
-### Scope
+## M1 — Identity and user isolation
 
-- email/password registration;
-- login/logout;
-- password recovery;
-- `profiles` table;
-- default currency;
-- effective timezone;
-- RLS policies;
-- authenticated API middleware.
-
-### Acceptance criteria
-
-- a user can register and sign in;
-- each user sees only their profile;
-- unauthenticated API calls are rejected;
-- RLS tests prove cross-user isolation;
-- timezone changes require confirmation.
-
----
-
-## M2 — Goals Core
+**Goal:** Establish private multi-user ownership and deployment-aware email/password authentication.
 
-### Scope
+**Suggested branch:** `feat/identity-isolation`
 
-- `goals` table;
-- create goal;
-- quick creation flow;
-- edit goal;
-- list goals;
-- manual order;
-- priority;
-- states;
-- archive, trash, restore;
-- goal details shell.
-
-### Acceptance criteria
-
-- a user can create manual-target and component-calculated goals;
-- goal currency locks after first financial event;
-- archived goals are separated;
-- trashed goals can be restored;
-- permanent deletion follows configured rules.
-
----
-
-## M3 — Planning Model
-
-### Scope
-
-- components;
-- component types;
-- checkpoints;
-- checkpoint-component relation;
-- final automatic checkpoint;
-- tasks;
-- roadmap;
-- activity events for non-financial changes.
+### Data and backend
 
-### Acceptance criteria
-
-- one-time purchase and budget components behave differently;
-- checkpoint amounts derive correctly;
-- checkpoints remain cumulative;
-- only one final checkpoint exists;
-- tasks may link to one checkpoint or one component;
-- history records planning changes.
+- create the `profiles` table and ownership policies;
+- create the minimal `goals` ownership skeleton only if needed to prove child isolation;
+- wire Supabase access-token verification in the API;
+- add authenticated user context and typed authorization helpers;
+- implement profile read/update;
+- configure registration as a deployment setting;
+- document SMTP recovery and manual recovery behavior.
 
----
+### Web
 
-## M4 — Financial Engine
+- sign in, optional sign up, sign out, session restoration, recovery request, and update-password
+  states;
+- profile/default-currency setup;
+- protected routing with loading and expired-session handling.
 
-### Scope
+### Tests
 
-- `financial_events`;
-- `financial_event_revisions`;
-- `goal_financial_snapshots`;
-- deposits;
-- withdrawals;
-- one-time purchases;
-- budget expenses;
-- event + snapshot atomicity;
-- idempotency;
-- snapshot reconstruction.
-
-### Acceptance criteria
+- migration and constraints;
+- API unauthenticated and cross-user denial;
+- RLS direct-access isolation;
+- registration enabled/disabled behavior;
+- recovery UI with and without configured email delivery.
 
-- financial events are authoritative;
-- available, invested, funded, and historical totals calculate correctly;
-- no operation creates a negative historical balance;
-- repeated idempotency keys return the original result;
-- snapshot rebuild matches event history;
-- financial writes cannot bypass backend rules.
+### Exit criteria
 
----
+Two users can authenticate on the same deployment and cannot read or mutate one another's data
+through the API or RLS.
 
-## M5 — Transfers and Corrections
+## M2 — Goals and item planning
 
-### Scope
+**Goal:** Create the complete non-financial planning aggregate.
 
-- `transfers`;
-- atomic transfer;
-- refund;
-- partial refund;
-- event edit;
-- event void;
-- transfer void;
-- historical sequence recalculation;
-- checkpoint achievement recalculation.
+**Suggested branch:** `feat/goals-items`
 
-### Acceptance criteria
+### Data and domain
 
-- transfer either succeeds fully or changes nothing;
-- partial refund never exceeds refundable balance;
-- voiding restores exact financial state;
-- historical edits are rejected if they create a negative past balance;
-- both transfer sides remain linked.
+- complete `goals` and create `goal_items`;
+- implement fixed and item-derived target rules;
+- implement canonical business-month parsing and validation;
+- derive incomplete item-goal setup;
+- implement fixed-goal item overage decision: keep or increase target.
 
----
+### API and web
 
-## M6 — Projection Engine
+- goal CRUD, archive, restore, and confirmed permanent delete;
+- item create/edit/delete/reorder;
+- active and archived goal lists grouped by currency;
+- create/edit forms for target mode, start/final month, one/two contribution frequency, and optional
+  preferred amount;
+- fixed-goal percentage helper that stores the converted money value.
 
-### Scope
+### Tests
 
-- pure Projection Engine;
-- abstract saving periods;
-- monthly and semi-monthly schedules;
-- critical checkpoint;
-- minimum contribution;
-- ideal contribution;
-- projected completion date;
-- tranquility status;
-- explanation tree;
-- prioritized recommended actions.
+- target calculations and edge cases;
+- invalid month ranges and target-mode fields;
+- item ownership and ordering;
+- explicit over-budget choice;
+- empty, loading, error, archive, restore, and delete states.
 
-### Acceptance criteria
+### Exit criteria
 
-- same input always returns same output;
-- engine has no infrastructure imports;
-- all five tranquility states are covered by tests;
-- open goals without plan return `No plan`;
-- next checkpoint and final goal projections are separate;
-- UI displays explanation and recommended action.
+The Japan and empty/home-gym plans can be represented without tasks, checkpoints, or generic
+components. Item-derived goals calculate their target or report incomplete setup correctly.
 
----
+## M3 — Financial ledger and history
 
-## M7 — Simulation
+**Goal:** Make real monetary activity safe, editable, and reconstructable.
 
-### Scope
+**Suggested branch:** `feat/financial-ledger`
 
-- Simulation Engine;
-- temporary overrides;
-- compare base vs simulated;
-- change amount, dates, component costs, target;
-- apply scenario only after confirmation.
+### Data and domain
 
-### Acceptance criteria
+- create `financial_transactions`, constraints, indexes, and RLS;
+- implement deterministic ledger replay and target integration;
+- implement contribution, withdrawal, purchase, full undo, edit, and delete rules;
+- implement currency locking and submission/retry protection without an idempotency subsystem;
+- serialize money safely at JSON boundaries.
 
-- simulations do not write to the database;
-- real state remains unchanged;
-- result clearly compares current and simulated outcomes;
-- applying a scenario uses normal validated use cases.
+### API
 
----
+- one financial command service with explicit transaction and pessimistic goal lock;
+- history query with deterministic ordering and filters;
+- stable domain-error mapping;
+- reject archived-goal mutations and future effective dates.
 
-## M8 — Activity and Completion
+### Web
 
-### Scope
+- add/edit/delete contribution and withdrawal;
+- purchase item and undo purchase with confirmation;
+- summary for funded, spent, available, target, and remaining;
+- unified financial history and correction states.
 
-- unified activity timeline;
-- filters;
-- checkpoint achievements;
-- current coverage;
-- goal completion detection;
-- close flow;
-- surplus handling;
-- close below original target;
-- completion summary.
+### Tests
 
-### Acceptance criteria
+- table-driven replay including every invalid negative prefix;
+- purchase affordability, actual-price target changes, duplicate purchase, undo, and purchased-item
+  deletion block;
+- concurrent and repeated commands;
+- database rollback, locking, retry behavior, and RLS;
+- API and web happy/error paths.
 
-- historical achievement and current coverage are distinct;
-- close requires valid completion or explicit early-close reason;
-- remaining balance can be transferred, withdrawn, or retained;
-- archived goal retains history.
+### Exit criteria
 
----
+Every financial write passes through one engine and transaction path. Retries are safe, retroactive
+changes cannot corrupt history, and cross-user or concurrent commands cannot double-spend.
 
-## M9 — Offline PWA
+## M4 — Guidance and temporary simulation
 
-### Scope
+**Goal:** Explain the pace needed for a goal and safely explore hypothetical contributions.
 
-- service worker;
-- installable PWA;
-- client cache;
-- IndexedDB;
-- offline deposit queue;
-- sync states;
-- idempotent replay;
-- needs-review handling.
+**Suggested branch:** `feat/guidance-simulation`
 
-### Acceptance criteria
+### Domain
 
-- previously loaded data is readable offline;
-- deposit can be created offline;
-- reconnection syncs exactly once;
-- double replay does not duplicate;
-- deposits targeting archived/trashed goals enter review.
+- implement cumulative due-item and final-month obligations;
+- compute deadline-based monthly and per-contribution recommendations;
+- implement open-goal preferred-amount forecast;
+- implement `ahead`, `on_track`, `at_risk`, `behind`, absent-status, and `fully_funded` behavior;
+- expose one projection entry point with values, status, explanation, and recommendation;
+- implement validation and reporting for up to three sequential simulation phases whose amount is
+  per contribution;
 
----
+### API and web
 
-## M10 — Import, Export, Backup
+- include guidance in goal-detail queries;
+- add side-effect-free simulation endpoint;
+- display guidance with plain-language reasons;
+- build a temporary simulator with phase editing, validation, monthly report, target estimate, and
+  item-affordability timeline.
 
-### Scope
+### Tests
 
-- versioned full backup JSON;
-- restore;
-- goal export;
-- empty template export/import;
-- CSV export;
-- schema validation;
-- incompatible-file errors.
+- month boundaries, past due obligations, overlapping obligations, frequency division, tolerance,
+  purchased items, open goals, and incomplete targets;
+- simulation duration, sequence, continuation, invalid amount, three-phase limit, and affordability;
+- proof that simulations write no rows.
 
-### Acceptance criteria
+### Exit criteria
 
-- template never includes financial history;
-- backup restore validates schema before changes;
-- incompatible versions fail safely;
-- CSV exports usable tabular data;
-- import preview allows selection and adjustments.
+Both reference goals produce deterministic, understandable guidance, and simulation reports never
+change real state or pretend affordable items were purchased.
 
----
+## M5 — Product UX integration
 
-## M11 — UX Integration
+**Goal:** Turn the functional slices into one calm, accessible, mobile-first product.
 
-### Scope
+**Suggested branch:** `feat/product-ux`
 
-- implement Claude Design output;
-- responsive dashboard;
-- goal detail navigation;
-- roadmap;
-- action menu;
-- financial forms;
-- empty states;
-- loading/error states;
-- accessibility basics.
+### Changes
 
-### Acceptance criteria
+- align navigation, dashboard, goal detail, forms, history, simulator, archives, and settings;
+- implement consistent currency, date, status, toast, dialog, skeleton, and error patterns;
+- preserve form input across recoverable errors;
+- complete keyboard, screen-reader, focus, contrast, reduced-motion, and responsive behavior.
 
-- mobile and desktop flows are complete;
-- adding a deposit requires only amount;
-- all critical warnings are understandable;
-- keyboard navigation works for primary flows;
-- visual design does not alter business rules.
+### Tests
 
----
+- component and integration coverage for all visible states;
+- automated accessibility checks and manual keyboard pass;
+- mobile and desktop visual checks;
+- end-to-end Japan and home-gym journeys.
 
-## M12 — Hardening and Release
+### Exit criteria
 
-### Scope
+The product is usable without knowledge of its data model, status is never color-only, destructive
+actions are explicit, and critical journeys work on mobile and desktop.
 
-- full RLS review;
-- security review;
-- import size limits;
-- rate limiting where appropriate;
-- audit logs;
-- integration tests;
-- end-to-end tests;
-- Docker production configuration;
-- SMTP documentation;
-- backup documentation;
-- release process;
-- license.
+## M6 — Hardening and self-hosted release
 
-### Acceptance criteria
+**Goal:** Produce a reproducible, supportable self-hosted release.
 
-- Japan and Home Gym scenarios pass end-to-end;
-- all mandatory PRD audit cases pass;
-- fresh Docker deployment works;
-- migration upgrade path works;
-- release documentation is complete;
-- repository is ready for MIT publication.
+**Suggested branch:** `chore/self-hosted-release`
 
----
+### Changes
 
-# 6. Cross-cutting test matrix
+- production Docker Compose and reverse-proxy example with pinned versions;
+- environment validation and safe public/server variable separation;
+- signup, SMTP, TLS, secrets, backup, restore, upgrade, and rollback documentation;
+- observability with request IDs and non-sensitive structured logs;
+- dependency, image, migration, and security review;
+- release notes and operator checklist.
 
-Each milestone must add relevant tests across:
+### Tests
 
-- unit;
-- database integration;
-- API integration;
-- RLS;
-- end-to-end;
-- offline where relevant.
+- clean-machine installation and smoke test;
+- backup/restore rehearsal;
+- production build and container health checks;
+- full RLS, API, domain, web, end-to-end, and accessibility suites.
 
-Financial and projection logic require table-driven tests.
+### Exit criteria
 
----
+A new operator can deploy from documented instructions, create isolated users, restore a backup, and
+complete both reference journeys without unpublished knowledge.
 
-# 7. Definition of done
+## Requirement coverage
 
-A feature is done only when:
+| Requirement | Delivery milestone |
+|---|---|
+| R1 Manage goals | M2 |
+| R2 Contributions and correction | M3 |
+| R3 Money totals | M3 |
+| R4 Dated-item cumulative deadlines | M2, M4 |
+| R5 Contribution guidance | M4 |
+| R6 Explainable status | M4 |
+| R7 Items in both target modes | M2, M3 |
+| R8 Item purchase | M3 |
+| R9 Temporary simulation | M4 |
+| R10 Withdrawal | M3 |
+| R11 Purchase undo | M3 |
+| R12 Purchased-item correction | M3 |
+| R13 User-controlled fully funded lifecycle | M2, M4 |
+| R14 Historical replay validation | M3 |
+| R15 Pending-item deletion | M2, M3 |
+| R16 Target-mode impact confirmation | M2 |
+| R17 Month-level planning | M2, M4 |
+| R18 Real transaction dates | M3 |
+| R19 Unified financial history | M3 |
+| R20 Multi-user isolation | M1 |
+| R21 Authentication | M1 |
+| R22 Archive, restore, permanent delete | M2 |
+| R23 Deployment registration control | M1, M6 |
+| R24 Capability-aware password recovery | M1, M6 |
+| R25 Open-goal preferred contribution | M2, M4 |
+| R26 Goal currency isolation and locking | M1–M3 |
+| R27 Completed-month expected progress | M4 |
+| R28 Safe contribution/withdrawal deletion | M3 |
+| R29 No future real transactions | M3 |
+| R30 Planning impact previews | M2 |
+| R31 Real item-price overage choice | M2, M3 |
+| R32 Empty item-goal setup state | M2, M4 |
 
-- functional behavior is implemented;
-- authorization is enforced;
-- database constraints exist where appropriate;
-- tests cover success and failure paths;
-- UI includes loading, empty, success, and error states;
-- documentation is updated;
-- no business rule is duplicated in the frontend;
-- lint, typecheck, tests, and build pass.
+## Standard completion report
 
----
+Every milestone handoff includes:
 
-# 8. Implementation order rationale
-
-The order intentionally builds:
-
-1. infrastructure;
-2. identity;
-3. structure;
-4. money;
-5. intelligence;
-6. offline and portability;
-7. design polish;
-8. hardening.
-
-Claude Design may run after M3 once the real information architecture is stable. Full visual integration should happen in M11 to avoid blocking backend progress.
+- milestone and behavior delivered;
+- files changed;
+- migrations and rollback notes;
+- tests added;
+- commands run and results;
+- unavailable validation and unresolved risks;
+- next recommended milestone.

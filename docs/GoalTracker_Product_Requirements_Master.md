@@ -1,1345 +1,357 @@
-# Goal Tracker — Product Requirements Document
-
-> **Status:** Functionally Audited Master
->
-> Este documento es la fuente única de verdad para la definición funcional del producto. Toda decisión futura deberá actualizar este archivo en lugar de crear versiones paralelas.
-
----
-
-# 1. Visión del producto
-
-Goal Tracker es una aplicación para planificar, ejecutar y completar objetivos económicos personales.
-
-La aplicación no pretende reemplazar sistemas de presupuesto, contabilidad personal o conexión bancaria. Su foco principal es ayudar al usuario a responder:
-
-- ¿Cuánto he avanzado?
-- ¿Voy bien?
-- ¿Cuánto debo ahorrar por quincena o por mes?
-- ¿Llegaré a tiempo al siguiente checkpoint?
-- ¿Puedo realizar una compra sin comprometer el objetivo?
-- ¿Qué debería hacer a continuación?
-
-La entidad principal del producto es el **Objetivo**.
-
----
-
-# 2. Objetivo general
-
-Permitir que una persona gestione múltiples objetivos económicos de forma separada, cada uno con:
-
-- una meta;
-- una fecha opcional;
-- checkpoints monetarios;
-- componentes;
-- tareas;
-- aportes;
-- compras;
-- historial;
-- proyecciones;
-- estado de tranquilidad.
-
-Casos principales:
-
-- viaje;
-- home gym;
-- computadora;
-- fondo de emergencia;
-- compra grande;
-- proyecto por componentes.
+# Goal Tracker — Product Requirements
 
----
+**Status:** Approved simplified MVP
+**Last updated:** 2026-07-29
+**Authority:** This document is the source of truth for product behavior. It supersedes every earlier
+product model, including tasks, standalone checkpoints, components, transfers, persistent
+simulations, and snapshot-driven progress.
 
-# 3. Principios de producto
+## 1. Product
 
-1. El objetivo es la entidad principal.
-2. El progreso monetario depende únicamente del dinero.
-3. Las tareas no afectan el porcentaje.
-4. El historial se basa en eventos.
-5. El estado de tranquilidad debe ser explicable.
-6. La siguiente acción recomendada es más importante que el porcentaje aislado.
-7. Registrar un aporte debe ser extremadamente rápido.
-8. La aplicación debe sentirse como un asistente, no solo como un tracker.
-9. La privacidad entre usuarios es obligatoria.
-10. El MVP debe ser simple, útil y self-hosted.
+Goal Tracker is a small, open-source, self-hosted web application for answering four questions:
 
----
+1. How much money have I funded toward each goal?
+2. How much remains available or has already been spent?
+3. Am I contributing fast enough for the goal's plan?
+4. When will a planned purchase become affordable under a hypothetical contribution plan?
 
-# 4. Alcance del MVP
+The product is intentionally a goal and budget tracker. It is not a task manager, accounting
+platform, banking integration, or project management system.
 
-## Incluido
+The initial reference cases are:
 
-- cuentas de usuario;
-- registro abierto;
-- correo y contraseña;
-- recuperación por correo;
-- objetivos privados;
-- múltiples objetivos por usuario;
-- meta manual o calculada por componentes;
-- checkpoints monetarios;
-- componentes;
-- tareas;
-- aportes;
-- retiros;
-- transferencias entre objetivos con la misma moneda;
-- compras de componentes de compra única;
-- gastos múltiples en componentes de presupuesto;
-- historial de eventos;
-- proyecciones;
-- simulaciones;
-- estados de tranquilidad;
-- dashboard;
-- PWA;
-- funcionamiento offline parcial;
-- exportación JSON;
-- exportación CSV;
-- exportación e importación de plantillas vacías;
-- objetivos archivados;
-- papelera;
-- inglés como idioma inicial;
-- estructura preparada para internacionalización.
+- a Japan trip with one or two monthly contributions and dated expenses such as flights and hotel;
+- a home gym whose required amount is the sum of equipment prices and which has no final date.
 
-## Fuera del MVP
+## 2. Users and deployment
 
-- conexión bancaria;
-- colaboración en tiempo real;
-- objetivos compartidos;
-- roles de administrador;
-- panel administrativo;
-- múltiples monedas dentro del mismo objetivo;
-- objetivos completamente no monetarios;
-- notificaciones push;
-- búsqueda textual en historial;
-- pagos parciales en componentes de tipo compra única;
-- checkpoints repetitivos;
-- IA integrada;
-- recomendaciones globales de distribución entre objetivos.
+- The application supports multiple accounts even when a deployment has only a few users.
+- Every user's goals, items, transactions, preferences, and derived results are private.
+- Authentication uses Supabase email and password.
+- Self-hosters decide whether public registration is enabled.
+- Password recovery uses configured SMTP when available. A deployment without SMTP must document a
+  manual administrator-assisted reset procedure; the UI must not promise email delivery.
+- There are no shared goals, organizations, teams, roles, or admin UI in the MVP.
+- English is the initial interface language. The data model must not prevent later localization.
 
----
+## 3. Product scope
 
-# 5. Usuarios y acceso
+### Included
 
-## 5.1 Modelo de usuario
+- create, edit, archive, restore, and permanently delete personal goals;
+- fixed-target and item-derived goals;
+- optional planned purchases or expenses inside any goal;
+- one or two planned contributions per calendar month;
+- contributions, withdrawals, purchases, purchase undo, and editable history;
+- current totals, remaining amount, pace status, estimate, and explanation;
+- temporary, contribution-only simulations with item-affordability reporting;
+- responsive web experience;
+- versioned self-hosted deployment plus infrastructure backup and restore documentation.
 
-Todos los usuarios tienen el mismo nivel de permisos dentro de la aplicación.
+### Explicitly excluded
 
-No existe un rol de administrador en la interfaz.
+- tasks, subtasks, habits, completion points, or task-based progress;
+- standalone milestone or checkpoint entities;
+- paydays, pay periods, recurring transaction entities, or automatic deposits;
+- transfers between goals;
+- bank connections and financial-provider synchronization;
+- shared goals, public profiles, admin roles, or admin dashboards;
+- OAuth, native mobile apps, push notifications, or public APIs;
+- persistent simulation scenarios;
+- AI features;
+- multiple currencies inside one goal or portfolio totals across currencies.
+- offline writes, service workers, importable templates, CSV/app-level import or export, and
+  application-level restore flows.
 
-Cada usuario solo puede ver y modificar sus propios datos.
+An excluded feature requires an explicit product-document revision before implementation.
 
-## 5.2 Autenticación
+## 4. Core concepts
 
-- correo y contraseña;
-- registro abierto;
-- recuperación de contraseña por correo.
+### 4.1 Goal
 
-## 5.3 Perfil
+A goal is the primary aggregate and belongs to one user. It contains:
 
-El perfil incluye:
+- name and optional description;
+- currency;
+- target mode: `fixed` or `items`;
+- target amount when fixed;
+- planning start month;
+- optional final month;
+- planned contribution frequency: one or two contributions per calendar month;
+- optional preferred amount per contribution;
+- lifecycle state: active or archived.
 
-- nombre;
-- correo;
-- moneda predeterminada.
+Months are stored and displayed as month/year concepts. No artificial day, payday, or period entity
+is created. Calculations use the first day of the month internally only as a canonical
+representation.
 
-La zona horaria se obtiene del navegador y se guarda como preferencia efectiva del usuario.
+Currency is editable until the first financial transaction and immutable afterward.
 
-Si el navegador reporta otra zona horaria, la aplicación pedirá confirmar el cambio antes de recalcular fechas o periodos.
+### 4.2 Goal item
 
-## 5.4 Privacidad
+An item is an optional planned purchase or expense inside any goal. Examples include a flight,
+hotel, or dumbbell.
 
-Los objetivos, movimientos, componentes, checkpoints y tareas son privados por usuario.
+It contains:
 
----
+- name;
+- expected price;
+- optional due month;
+- stable display position.
 
-# 6. Modelo de dominio
+An item with a due month supplies the same user need previously called a checkpoint: it represents
+a cumulative amount that must be funded by a particular month. There is no separate checkpoint
+entity or separate checkpoint progress.
 
-## 6.1 Objetivo
+For a fixed goal, items allocate or explain parts of the fixed budget:
 
-Representa una meta económica personal.
+- the user may enter an item directly as money;
+- the UI may offer percentage input, but it immediately converts the percentage to a stored money
+  amount;
+- item prices are never maintained as live percentage formulas;
+- if item prices exceed the target, the UI warns clearly and requires the user to keep the existing
+  target or increase it. Either choice is valid.
 
-Contiene:
+For an item-derived goal, the current target is:
 
-- nombre;
-- descripción opcional;
-- moneda;
-- meta económica;
-- modo de cálculo;
-- fecha final opcional;
-- estado;
-- prioridad;
-- frecuencia de ahorro;
-- aporte planificado opcional;
-- checkpoints;
-- componentes;
-- tareas;
-- eventos.
+```text
+sum(actual purchase price for purchased items)
++ sum(expected price for unpurchased items)
+```
 
-Estados válidos:
+An item-derived goal with no items is an incomplete setup. It may receive contributions, but it has
+no target, remaining amount, pace status, or completion state until an item exists.
 
-1. Borrador
-2. Activo
-3. Completado pendiente de cierre
-4. Archivado
-5. En papelera
+### 4.3 Financial transaction
 
-Las simulaciones son resultados temporales y no forman parte persistente del objetivo salvo que el usuario aplique explícitamente un escenario.
+Financial transactions are the authoritative monetary history. Supported kinds are:
 
-## 6.2 Meta económica
+- `contribution`: adds available and funded money;
+- `withdrawal`: removes available and funded money;
+- `purchase`: removes available money, increases spent money, and references exactly one item;
+- `purchase_undo`: reverses one purchase completely.
 
-Puede definirse de dos maneras:
+Current amounts are derived as:
 
-1. Manualmente.
-2. Calculada como suma de componentes.
+```text
+funded   = contributions - withdrawals
+spent    = purchases - purchase_undos
+available = funded - spent
+```
 
-El usuario elige el modo.
+For valid history, `funded`, `spent`, and `available` must never be negative at any point in the
+chronological replay. A purchase is allowed only when enough money is available.
 
-### Modo manual
+Purchasing does not reduce funded progress. It moves money from available to spent. In an
+item-derived goal, the actual purchase price replaces that item's expected price, so the target may
+increase or decrease.
 
-- La meta es independiente de la suma de componentes.
-- La diferencia entre la meta y los componentes se muestra como presupuesto no asignado o sobreasignación.
-- Cambiar componentes no modifica automáticamente la meta.
+## 5. Financial behavior
 
-### Modo calculado
+### 5.1 Recording
 
-- La meta es la suma de todos los componentes activos con precio definido.
-- Los componentes cancelados y los componentes sin precio no cuentan.
-- Un cambio confirmado en costos recalcula meta, checkpoint final y proyecciones.
+- A real transaction cannot have a future effective date.
+- The default effective date is today and may be changed to a past date.
+- Money is stored in integer minor units with two decimal places in the MVP.
+- IDs are UUID v4 values.
+- Every mutation is authorized and executed by the backend; the browser never inserts ledger rows
+  directly.
+- Retry protection relies on committed transaction state plus disabled/submitting UI controls. The
+  MVP does not introduce an offline or idempotency subsystem.
 
-## 6.3 Progreso monetario
+### 5.2 Editing and correcting
 
-El progreso se calcula exclusivamente con dinero.
+- Contributions and withdrawals can be edited or deleted.
+- A retroactive change is accepted only if replaying the full goal history still satisfies every
+  monetary invariant.
+- A real refund is a contribution or withdrawal correction appropriate to the real event; mistakes
+  are corrected through the explicit edit/delete or purchase-undo flows.
+- A purchased item cannot be deleted until its purchase has been undone.
+- Undo reverses the entire purchase. Partial undo is outside the MVP.
+- A purchase price may be corrected through the purchase edit flow if the full replay remains valid.
 
-No existe progreso combinado.
+History ordering is deterministic:
 
-## 6.4 Componentes
+1. effective date;
+2. creation timestamp;
+3. transaction ID.
 
-Representan partes económicas del objetivo. Existen dos tipos visibles bajo la misma entidad:
+The goal history is a single chronological list with kind and date filters. It must show edits and
+purchase reversals clearly without exposing sensitive audit metadata.
 
-### Compra única
+## 6. Guidance and projection
 
-Representa un gasto concreto que se realiza una vez.
+### 6.1 Planning baseline
 
-Ejemplos:
+The user chooses one or two planned contributions per calendar month. This value controls how a
+recommended monthly amount is presented:
 
-- vuelos;
-- rack;
-- barra olímpica;
-- reserva de hotel.
+```text
+per-contribution recommendation = monthly recommendation / frequency
+```
 
-Estados:
+It does not restrict the number of real contributions the user may record.
 
-1. Planeado
-2. Ahorrando
-3. Listo para comprar
-4. Comprado
-5. Cancelado
+### 6.2 Dated plan
 
-Los estados `Ahorrando` y `Listo para comprar` son derivados:
+Each due item produces a cumulative required amount by its due month. A final-month goal produces a
+required total by that month. When several obligations share or overlap a month, their required
+amounts are cumulative.
 
-- `Ahorrando`: el componente está activo y aún no existe saldo suficiente para cubrirlo.
-- `Listo para comprar`: existe saldo disponible suficiente para cubrir su costo actual.
-- `Comprado` y `Cancelado` requieren una acción explícita.
+Guidance evaluates the next unfinished dated-item requirement; when none exists it evaluates the
+final target. The baseline amount per contribution is the remaining required money divided by the
+remaining contribution opportunities, using inclusive calendar months multiplied by the selected
+one-or-two frequency. Past unmet obligations are reported as behind rather than divided over
+negative or zero opportunities.
 
-### Presupuesto
+If an item is already purchased, its obligation is satisfied by its actual purchase. If it was
+purchased after its due month, history remains truthful and the current recommendation uses the
+remaining future obligations.
 
-Representa una bolsa económica destinada a gastos distribuidos o variables.
+### 6.3 Open goals
 
-Ejemplos:
+A goal without any future due month or final month has no deadline-based required pace.
 
-- comida;
-- transporte;
-- emergencias;
-- souvenirs.
+- If it has a preferred amount per contribution, show a forecast and guidance based on that
+  preference and the one-or-two frequency.
+- Without a preferred amount, show current totals and remaining money but no pace status or
+  completion estimate.
 
-Estados:
+### 6.4 Status
 
-1. Planeado
-2. En uso
-3. Completado
-4. Cancelado
+Status is computed only when there is enough planning information:
 
-Reglas:
+- `behind`: the relevant deadline month has ended without enough cumulative funding;
+- `at_risk`: funded progress is at least one baseline contribution below expected progress;
+- `ahead`: funded progress is at least one baseline contribution above expected progress;
+- `on_track`: funded progress lies between the `at_risk` and `ahead` thresholds.
 
-- `En uso` se deriva cuando existe al menos un gasto válido.
-- `Completado` requiere confirmación explícita o el cierre del objetivo.
-- Los gastos pueden superar el presupuesto estimado si existe saldo suficiente y el usuario confirma el impacto.
+Expected progress is based on completed calendar months from the planning start month and the
+current recommended contribution plan. One baseline contribution means the current recommended
+per-contribution amount.
 
-Un componente puede:
+`fully_funded` is a separate completion condition, not another pace status. It is true when a valid
+target exists and funded money is at least that target. Purchases do not make a funded goal
+incomplete.
 
-- pertenecer a varios checkpoints;
-- no pertenecer a ningún checkpoint intermedio;
-- tener precio desconocido;
-- no afectar la meta hasta que tenga precio.
+Every status or absent status must include a short explanation and a useful recommendation. The
+projection engine has one public entry point returning calculations, status, explanation, and
+recommendation together.
 
-El tipo del componente determina cómo se registra su uso y qué estados son válidos.
+## 7. Temporary simulation
 
-### Operaciones por tipo
+Simulation is an in-memory report. It never creates, updates, or purchases anything.
 
-**Compra única**
-
-- admite una única compra final;
-- no admite pagos parciales en el MVP;
-- la acción principal es “Comprar componente”.
-
-**Presupuesto**
-
-- admite múltiples gastos;
-- cada gasto reduce el saldo disponible y aumenta el monto utilizado;
-- muestra presupuesto previsto, gastado y restante;
-- la acción principal es “Registrar gasto”.
-
-Estas diferencias son una consecuencia del tipo de componente y no constituyen un tercer tipo.
-
-## 6.5 Checkpoints monetarios
-
-Representan montos acumulados que deben alcanzarse para una fecha.
-
-Pueden:
-
-- calcularse por suma de componentes;
-- incluir un monto manual adicional;
-- existir solo con monto manual;
-- incluir componentes compartidos con otros checkpoints.
-
-Todo objetivo monetario tiene exactamente un checkpoint final automático.
-
-- En modo manual, su monto es igual a la meta manual.
-- En modo calculado, su monto es igual a la meta calculada.
-- Si el objetivo tiene fecha final, el checkpoint final hereda esa fecha.
-- Si el objetivo no tiene fecha final, el checkpoint final es abierto y no requiere mes ni año.
-- Un checkpoint final abierto proyecta una fecha estimada usando el aporte planificado, pero no puede quedar atrasado por fecha.
-
-## 6.6 Tareas
-
-Las tareas son organizativas.
-
-Pueden vincularse a:
-
-- un checkpoint;
-- un componente.
-
-No afectan el progreso monetario.
-
-## 6.7 Eventos
-
-Todo cambio relevante genera un evento.
-
-Categorías:
-
-### Dinero
-
-- aporte;
-- retiro;
-- transferencia enviada;
-- transferencia recibida.
-
-### Compras
-
-- compra;
-- anulación;
-- devolución.
-
-### Objetivo
-
-- meta modificada;
-- fecha modificada;
-- checkpoint creado, modificado o archivado;
-- componente creado, modificado o cancelado;
-- modo de cálculo modificado.
-
-### Organización
-
-- tarea creada;
-- tarea completada;
-- nota agregada.
-
-Cada evento debe registrar como mínimo:
-
-- identificador;
-- usuario propietario;
-- tipo y categoría;
-- fecha efectiva;
-- fecha de creación;
-- monto y moneda cuando aplique;
-- referencia al objetivo;
-- referencia opcional a componente o checkpoint;
-- estado activo o anulado;
-- revisión anterior cuando haya sido editado.
-
-Los eventos financieros no se eliminan desde el flujo normal: se editan con historial o se anulan.
-
----
-
-# 7. Reglas del dinero
-
-## 7.1 Métricas
-
-La aplicación distingue:
-
-- **Disponible:** dinero neto que todavía puede utilizarse.
-- **Invertido:** dinero neto utilizado correctamente dentro del objetivo.
-- **Financiado:** disponible + invertido. Es la cifra que determina el progreso.
-- **Aportes históricos:** suma bruta de aportes válidos, sin descontar retiros.
-- **Retiros históricos:** suma bruta de retiros válidos.
-
-Las métricas históricas son secundarias. La cabecera principal usa `Disponible`, `Invertido` y `Financiado`.
-
-## 7.2 Progreso después de comprar
-
-Comprar un componente:
-
-- reduce el disponible;
-- aumenta lo invertido;
-- mantiene el financiado;
-- no reduce el progreso financiado.
-
-## 7.3 Compras
-
-Una compra:
-
-1. descuenta saldo disponible;
-2. registra dinero invertido;
-3. cambia el componente a comprado;
-4. crea un evento.
-
-No se permite comprar sin saldo suficiente.
-
-El saldo no puede quedar negativo.
-
-## 7.4 Precio real
-
-Si el precio real es mayor al estimado:
-
-- se permite si existe saldo suficiente;
-- se muestra el impacto;
-- se recalcula después de confirmar.
-
-Si el precio real es menor:
-
-- la meta disminuye automáticamente cuando el objetivo está en modo calculado por componentes;
-- en modo de meta manual, la diferencia queda disponible.
-
-## 7.5 Correcciones
-
-Una compra registrada por error puede anularse.
-
-La anulación:
-
-- restaura el saldo;
-- revierte el estado del componente;
-- conserva la trazabilidad.
-
-## 7.6 Transferencias
-
-Solo se permiten entre objetivos con la misma moneda.
-
-Una transferencia:
-
-- muestra el efecto en ambos objetivos;
-- requiere confirmación;
-- genera eventos relacionados.
-
-No se permiten transferencias hacia objetivos archivados.
-
-## 7.7 Retiros
-
-Los retiros reducen el disponible.
-
-El motivo es opcional.
-
-## 7.8 Reservas internas
-
-El dinero no se reserva internamente por componente.
-
-Todo el saldo pertenece al objetivo general.
-
-## 7.9 Fórmulas de integridad monetaria
-
-Para eventos activos:
-
-- Disponible = aportes recibidos + transferencias recibidas + devoluciones − retiros − transferencias enviadas − compras − gastos.
-- Invertido = compras + gastos − devoluciones válidas.
-- Financiado = Disponible + Invertido.
-- Aportes históricos = suma de aportes recibidos, sin restar retiros.
-
-Invariantes:
-
-- Disponible nunca puede ser negativo.
-- Invertido nunca puede ser negativo.
-- Financiado nunca puede ser negativo.
-- Una anulación debe revertir exactamente el efecto del evento original.
-- Una transferencia debe confirmarse de forma atómica en origen y destino.
-
----
-
-# 8. Reglas de checkpoints
-
-## 8.1 Naturaleza
-
-Los checkpoints son acumulativos.
-
-Ejemplo:
-
-- octubre: $1,500;
-- febrero: $2,200;
-- abril: $3,000.
-
-## 8.2 Orden
-
-Cada checkpoint intermedio posterior debe tener:
-
-- fecha posterior;
-- monto igual o mayor.
-
-El checkpoint final abierto, al no tener fecha, siempre se presenta al final del roadmap.
-
-## 8.3 Monto
-
-Puede componerse de:
-
-- suma de componentes;
-- monto manual adicional opcional;
-- monto totalmente manual.
-
-## 8.4 Estados del checkpoint
-
-Cada checkpoint mantiene lecturas separadas:
-
-1. **Logro histórico**
-   - indica si el monto requerido fue alcanzado alguna vez;
-   - conserva la fecha en que se alcanzó.
-
-2. **Cobertura actual**
-   - indica si hoy sigue existiendo suficiente dinero disponible o invertido en componentes vinculados para cubrir el checkpoint;
-   - puede volver a estado no cubierto después de haber sido alcanzado.
-
-3. **Componentes completados**
-   - indica si todos los componentes vinculados fueron completados.
-
-Ejemplo:
-
-- Alcanzado el 10 de septiembre.
-- Actualmente no cubierto: faltan $1,000.
-
-## 8.5 Progreso y cobertura del checkpoint
-
-Para cada checkpoint:
-
-- **Invertido relacionado:** compras y gastos netos de componentes vinculados.
-- **Disponible aplicable:** saldo general disponible, limitado al monto restante del checkpoint.
-- **Cobertura actual:** invertido relacionado + disponible aplicable.
-- **Porcentaje actual:** cobertura actual / monto vigente, limitado a 100%.
-
-Las compras o gastos de componentes compartidos cuentan para todos los checkpoints relacionados.
-
-Como el dinero no está reservado, el mismo saldo disponible puede demostrar cobertura en checkpoints acumulativos. La interfaz debe aclarar que esto no representa fondos bloqueados.
-
-El logro histórico se registra cuando `Financiado` alcanzó el monto vigente del checkpoint en una fecha determinada.
-
-## 8.6 Cumplimiento
-
-Si se alcanza antes de tiempo:
-
-- se marca como adelantado.
-
-Si vence sin alcanzarse:
-
-- se marca como atrasado.
-
-Si posteriormente cambia la meta:
-
-- se conserva el cumplimiento histórico;
-- se muestra la nueva brecha actual.
-
-## 8.7 Cambios
-
-Cambiar fecha, monto o componentes vinculados:
-
-- muestra impacto;
-- requiere confirmación;
-- recalcula proyecciones;
-- registra evento.
-
-Eliminar un checkpoint lo archiva.
-
-## 8.8 Visualización
-
-Cada checkpoint muestra:
-
-- nombre;
-- fecha;
-- monto requerido;
-- monto cubierto;
-- porcentaje;
-- tranquilidad;
-- componentes;
-- faltante;
-- aporte recomendado.
-
----
-
-# 9. Proyecciones
-
-## 9.1 Frecuencias
-
-El usuario puede elegir:
-
-- quincenal: dos periodos por mes;
-- mensual: un periodo por mes.
-
-Periodos predeterminados:
-
-- primera quincena: días 1 al 15;
-- segunda quincena: día 16 al último día del mes;
-- mensual: mes calendario completo.
-
-La fecha límite de cada periodo es el último día del periodo. Las proyecciones usan la zona horaria efectiva del usuario.
-
-## 9.2 Recomendaciones separadas
-
-La aplicación muestra por separado:
-
-- aporte requerido para el siguiente checkpoint;
-- aporte requerido para completar la meta total.
-
-## 9.3 Aporte mínimo e ideal
-
-- **Mínimo del próximo checkpoint:** faltante del checkpoint dividido entre periodos restantes, redondeado hacia arriba a la precisión monetaria.
-- **Mínimo total:** faltante de la meta final dividido entre periodos restantes hasta su fecha.
-- **Ideal:** el mayor entre el mínimo del próximo checkpoint y el mínimo total.
-
-Si no existe una fecha límite:
-
-- el usuario debe indicar un aporte planificado para obtener fecha proyectada;
-- sin aporte planificado no existe estado de puntualidad ni aporte mínimo, solo progreso.
-
-El MVP no añade un porcentaje arbitrario de colchón. El margen se expresa mediante la diferencia entre fecha proyectada y fecha límite.
-
-## 9.4 Recalculo dinámico
-
-Si el usuario aporta más:
-
-- disminuyen aportes futuros;
-- mejora la proyección.
-
-Si aporta menos o deja pasar periodos:
-
-- aumenta el aporte recomendado;
-- puede empeorar la tranquilidad.
-
-## 9.5 Objetivos sin fecha
-
-Cualquier objetivo puede no tener fecha final.
-
-En ese caso, la aplicación puede proyectar una fecha estimada según el aporte planificado.
-
-## 9.6 Simulaciones
-
-Las simulaciones no modifican el objetivo hasta confirmación.
-
-Permiten probar:
-
-- mayor o menor aporte;
-- cambio de fecha final;
-- cambio de checkpoint;
-- cambio de meta;
-- cambio de costo de componentes.
-
-Muestran impacto en:
-
-- fecha estimada;
-- mínimo;
-- ideal;
-- siguiente checkpoint;
-- tranquilidad.
-
----
-
-# 10. Estado de tranquilidad
-
-La tranquilidad es un estado derivado y determinista.
-
-## 10.1 Prioridad de evaluación
-
-1. Siguiente checkpoint intermedio activo.
-2. Checkpoint final.
-3. Ritmo planificado en objetivos sin fecha.
-
-## 10.2 Estados
-
-1. **Atrasado**
-   - existe un checkpoint vencido y actualmente no cubierto; o
-   - la fecha final ya pasó y el objetivo no está financiado.
-
-2. **En riesgo**
-   - la fecha proyectada supera la fecha límite; o
-   - no quedan periodos suficientes bajo el aporte planificado actual.
-
-3. **Justo**
-   - la fecha proyectada llega dentro del último periodo disponible; o
-   - el margen es menor o igual a un periodo de ahorro.
-
-4. **En buen camino**
-   - la proyección cumple la fecha con más de un periodo de margen.
-
-5. **Adelantado**
-   - el checkpoint ya está cubierto antes de su fecha; o
-   - la proyección tiene al menos dos periodos completos de margen.
-
-En objetivos abiertos sin fecha:
-
-- `Atrasado` no aplica.
-- `En riesgo` solo aplica si el usuario definió un aporte planificado y el ritmo real está por debajo de él.
-- Sin aporte planificado, la tranquilidad se muestra como `Sin plan` y no forma parte de los cinco estados de cumplimiento.
-
-## 10.3 Explicabilidad
-
-Todo estado debe incluir:
-
-- causa principal;
-- cifra relevante;
-- fecha o checkpoint afectado;
-- acción sugerida cuando corresponda.
-
-# 11. Siguiente acción recomendada
-
-Cada objetivo debe mostrar una acción concreta.
-
-Orden de prioridad:
-
-1. Resolver un checkpoint atrasado.
-2. Aumentar o ajustar el aporte si está en riesgo.
-3. Registrar el aporte mínimo del periodo.
-4. Comprar o gastar en un componente listo y próximo.
-5. Completar configuración pendiente.
-6. Confirmar el cierre del objetivo.
-7. Mostrar que no requiere acción inmediata.
-
-Ejemplos:
-
-- Aporta $120 esta quincena.
-- Ya puedes comprar los vuelos.
-- Aumenta $40 por quincena.
-- Retrasa el checkpoint un mes.
-- Ya alcanzaste el siguiente checkpoint.
-
----
-
-# 12. Pantallas y experiencia
-
-## 12.1 Dashboard
-
-Debe combinar:
-
-- tarjetas de objetivos;
-- tranquilidad;
-- siguiente acción;
-- progreso;
-- próximo checkpoint;
-- aporte recomendado;
-- resumen global secundario.
-
-La composición visual final se delegará al agente de diseño.
-
-## 12.2 Orden
-
-El usuario puede ordenar por:
-
-- orden manual;
-- prioridad;
-- urgencia;
-- riesgo.
-
-## 12.3 Creación rápida
-
-Campos:
-
-- nombre;
-- moneda;
-- meta;
-- fecha opcional;
-- plantilla.
-
-Después se ofrece:
-
-- Terminar configuración.
-- Hacerlo después.
-
-## 12.4 Plantillas
-
-Incluidas:
-
-- ahorro simple;
-- viaje;
-- proyecto por componentes;
-- fondo continuo.
-
-Las plantillas:
-
-- sugieren componentes;
-- sugieren checkpoints;
-- realizan preguntas específicas;
-- permiten editar todo.
-
-## 12.5 Detalle del objetivo
-
-Cabecera:
-
-- tranquilidad;
-- siguiente acción;
-- progreso;
-- disponible;
-- invertido;
-- financiado;
-- meta;
-- mínimo;
-- ideal.
-
-Secciones:
-
-- resumen;
-- roadmap;
-- componentes;
-- tareas;
-- historial;
-- simulaciones.
-
-## 12.6 Navegación
-
-- escritorio: pestañas o navegación expandida;
-- móvil: secciones optimizadas.
-
-## 12.7 Acción principal
-
-Botón global con:
-
-- agregar aporte;
-- retiro;
-- transferencia;
-- compra;
-- nota.
-
-“Agregar aporte” aparece primero.
-
-## 12.8 Aporte rápido
-
-Solicita únicamente monto.
-
-La fecha actual se asigna automáticamente.
-
-Puede editarse después.
-
-## 12.9 Historial
-
-Filtros por:
-
-- dinero;
-- compras;
-- objetivo;
-- organización.
-
-## 12.10 Roadmap
-
-- línea temporal en escritorio;
-- lista en móvil.
-
-## 12.11 Cierre
-
-Un objetivo pasa a `Completado pendiente de cierre` cuando:
-
-- el checkpoint final está actualmente cubierto; y
-- todos los componentes obligatorios están comprados, completados o cancelados.
-
-El usuario también puede solicitar cierre anticipado con justificación.
-
-Al cerrar:
-
-1. se muestra resumen;
-2. se resuelve cualquier saldo disponible;
-3. el usuario confirma;
-4. el objetivo se archiva.
-
-Resumen:
-
-- fecha prevista;
-- fecha real;
-- tiempo ganado;
-- financiado;
-- total invertido;
-- aportes históricos;
-- diferencia frente al presupuesto.
-
-## 12.12 Sobrante
-
-Al cerrar con saldo disponible, el usuario puede:
-
-- transferirlo;
-- retirarlo;
-- mantenerlo registrado.
-
-## 12.13 Objetivo completado por debajo de la meta
-
-La aplicación:
-
-- sugiere ajustar la meta real;
-- conserva la meta original en historial;
-- permite cerrar.
-
-## 12.14 Archivados y papelera
-
-- archivados en sección separada;
-- eliminados pasan a papelera;
-- papelera elimina automáticamente después de 30 días;
-- eliminación manual permanente requiere escribir el nombre.
-
-## 12.15 Fondos continuos
-
-Muestran:
-
-- saldo;
-- crecimiento por periodo;
-- aportes recientes;
-- saldo mínimo opcional.
-
----
-
-# 13. Exportación e importación
-
-## 13.1 Exportación de datos personales
-
-Formatos:
-
-- JSON;
-- CSV.
-
-## 13.2 Exportación de plantilla vacía
-
-Cada archivo incluye:
-
-- versión del esquema;
-- fecha de exportación;
-- idioma de origen.
-
-Incluye:
-
-- tipo;
-- componentes;
-- checkpoints;
-- tareas;
-- relaciones;
-- configuración reutilizable.
-
-No incluye:
-
-- aportes;
-- saldo;
-- compras;
-- historial financiero;
-- notas privadas;
-- datos sensibles.
-
-## 13.3 Importación
-
-Flujo:
-
-1. seleccionar archivo;
-2. previsualizar;
-3. elegir elementos;
-4. ajustar moneda, meta y fechas;
-5. confirmar;
-6. validar compatibilidad del esquema;
-7. crear objetivo vacío.
-
-La importación nunca ejecuta movimientos financieros. Los archivos incompatibles deben rechazarse con una explicación clara, sin importar parcialmente datos ambiguos.
-
-## 13.4 Duplicación
-
-El usuario puede duplicar un objetivo propio como estructura vacía.
-
----
-
-# 14. Offline y sincronización
-
-## 14.1 PWA
-
-La aplicación será una PWA.
-
-## 14.2 Offline
-
-Debe permitir:
-
-- visualizar datos previamente cargados;
-- registrar aportes offline;
-- sincronizarlos después.
-
-## 14.3 Conflictos
-
-El MVP usa “último cambio confirmado gana” para ediciones no financieras.
-
-Para aportes offline:
-
-- cada operación usa un identificador único e idempotente;
-- sincronizar dos veces no puede duplicar el aporte;
-- si el objetivo fue archivado o enviado a papelera antes de sincronizar, el aporte queda pendiente de revisión y no se aplica automáticamente.
-
-La interfaz mostrará advertencias cuando una edición pueda sobrescribir información más reciente.
-
----
-
-# 15. Datos y formato
-
-## 15.1 Moneda
-
-- una moneda por objetivo;
-- moneda predeterminada por usuario;
-- dos decimales en el MVP;
-- la moneda puede cambiarse solo mientras el objetivo no tenga eventos financieros activos;
-- después del primer evento financiero, cambiar moneda requiere duplicar o recrear el objetivo.
-
-## 15.2 Fechas
-
-- aportes reales: fechas pasadas o presentes;
-- fechas futuras no cuentan como dinero real;
-- checkpoints: fecha exacta o mes/año;
-- zona horaria efectiva del usuario, detectada inicialmente desde el navegador;
-- las fechas efectivas se guardan de forma estable y no cambian retroactivamente si cambia la zona horaria.
-
-## 15.3 Objetivos sin fecha
-
-Permitidos para cualquier tipo.
-
----
-
-# 16. Accesibilidad e idioma
-
-## 16.1 Accesibilidad
-
-El MVP tendrá accesibilidad básica verificable:
-
-- navegación por teclado;
-- etiquetas;
-- contraste razonable;
-- estados comprensibles;
-- controles utilizables en móvil.
-
-## 16.2 Idioma
-
-Idioma inicial: inglés.
-
-La arquitectura debe quedar preparada para traducciones futuras.
-
----
-
-# 17. Copias de seguridad
-
-La aplicación permitirá:
-
-- descargar una copia completa de los datos del usuario en JSON versionado;
-- restaurar esa copia en una cuenta vacía o mediante un flujo de reemplazo explícitamente confirmado.
-
-La restauración debe validar el esquema antes de modificar datos.
-
-La infraestructura self-hosted podrá implementar backups adicionales fuera de la aplicación.
-
----
-
-# 18. IA BYOK — Feature posterior al MVP
-
-La siguiente gran funcionalidad propuesta será un chat con IA BYOK.
-
-Casos de uso:
-
-- explicar progreso;
-- responder preguntas;
-- sugerir ajustes;
-- ejecutar simulaciones;
-- comparar escenarios;
-- resumir historial;
-- analizar checkpoints.
-
-Queda fuera del MVP.
-
-Requerirá una fase independiente de planificación sobre:
-
-- privacidad;
-- permisos;
-- claves;
-- proveedores;
-- herramientas;
-- confirmaciones;
-- seguridad;
-- trazabilidad;
-- costos;
-- límites.
-
-La IA nunca podrá ejecutar cambios irreversibles sin confirmación explícita.
-
----
-
-# 19. Diseño visual
-
-Se utilizará Claude Design como agente especializado.
-
-El agente podrá definir:
-
-- jerarquía;
-- layout;
-- responsive;
-- estados vacíos;
-- componentes;
-- prototipos.
-
-No podrá modificar reglas de negocio sin aprobación.
-
----
-
-# 20. Criterios de éxito del MVP
-
-El MVP se considera listo cuando:
-
-1. El usuario puede gestionar completamente los casos reales:
-   - viaje a Japón;
-   - construcción de home gym.
-2. Un usuario nuevo puede:
-   - registrarse;
-   - crear un objetivo;
-   - configurarlo;
-   - registrar aportes;
-   - gestionar checkpoints;
-   - registrar compras;
-   - entender si va bien;
-   - completar y cerrar el objetivo;
-   - hacerlo sin ayuda externa.
-
----
-
-# 21. Decisiones de producto
-
-## P-001
-
-El objetivo es la entidad principal.
-
-## P-002
-
-El progreso monetario depende solo del dinero.
-
-## P-003
-
-Los checkpoints representan el roadmap financiero.
-
-## P-004
-
-La meta puede ser manual o calculada.
-
-## P-005
-
-Las compras conservan el progreso logrado.
-
-## P-006
-
-No se permiten compras sin fondos suficientes.
-
-## P-007
-
-No existen reservas internas por componente.
-
-## P-008
-
-Los cambios importantes requieren confirmación.
-
-## P-009
-
-Los componentes representan gastos futuros.
-
-## P-010
-
-Los componentes de compra única no admiten pagos parciales en el MVP; los componentes de presupuesto admiten múltiples gastos.
-
-## P-011
-
-El historial es una función central.
-
-## P-012
-
-Todo objetivo tiene checkpoint final automático.
-
-## P-013
-
-Los checkpoints separan logro histórico, cobertura actual y componentes completados.
-
-## P-014
-
-La proyección del checkpoint y la total son independientes.
-
-## P-015
-
-Se muestran aportes mínimo e ideal.
-
-## P-016
-
-Las simulaciones no modifican datos sin confirmación.
-
-## P-017
-
-Todo estado de tranquilidad debe explicarse.
-
-## P-018
-
-La siguiente acción recomendada es una métrica principal.
-
-## P-019
-
-La IA BYOK es la siguiente gran feature posterior al MVP.
-
-## P-020
-
-El registro de aportes debe solicitar solo el monto.
-
-## P-021
-
-Los objetivos no monetarios quedan fuera del MVP.
-
-## P-022
-
-Exportar datos y exportar plantillas son funciones diferentes.
-
-## P-023
-
-No existe rol de administrador dentro de la aplicación.
-
-## P-024
-
-El diseño visual se delega a una fase especializada.
-
-## P-025
-
-Los componentes tienen dos tipos: compra única y presupuesto.
-
-**Motivo:** distinguir gastos concretos de bolsas económicas distribuidas sin complicar la interfaz principal.
-
-## P-026
-
-Los checkpoints separan logro histórico y cobertura actual.
-
-**Motivo:** conservar el historial sin comunicar una seguridad falsa cuando el dinero ya fue utilizado en otra parte del objetivo.
-
-
-## P-027
-
-El progreso usa `Financiado`; los aportes brutos se conservan como `Aportes históricos`.
-
-**Motivo:** evitar que un retiro haga ambiguo cuánto dinero sigue destinado al objetivo frente a cuánto se aportó durante toda su vida.
-
-## P-028
-
-El checkpoint final puede ser fechado o abierto.
-
-**Motivo:** conservar un modelo uniforme para objetivos con y sin fecha límite.
-
-## P-029
-
-Los estados de tranquilidad se calculan mediante reglas deterministas y explicables.
-
-**Motivo:** evitar resultados opacos o dependientes de criterios arbitrarios.
-
-## P-030
-
-Las operaciones financieras offline son idempotentes.
-
-**Motivo:** impedir aportes duplicados durante reintentos de sincronización.
-
-## P-031
-
-La moneda queda bloqueada después del primer evento financiero.
-
-**Motivo:** evitar conversiones implícitas e inconsistencias históricas.
-
-## P-032
-
-La importación, exportación y restauración usan archivos versionados.
-
-**Motivo:** preservar compatibilidad y prevenir cargas parciales ambiguas.
-
----
-
-# 22. Glosario
-
-**Objetivo:** meta económica personal.
-
-**Meta:** cantidad total necesaria.
-
-**Checkpoint:** monto acumulado requerido para una fecha.
-
-**Componente:** parte económica del objetivo, de tipo compra única o presupuesto.
-
-**Disponible:** dinero no gastado.
-
-**Invertido:** dinero gastado dentro del objetivo.
-
-**Financiado:** disponible + invertido; cifra usada para el progreso.
-
-**Aportes históricos:** suma bruta de aportes válidos, sin descontar retiros.
-
-**Tranquilidad:** evaluación del riesgo de cumplimiento.
-
-**Evento:** registro trazable de un cambio.
-
-**Plantilla vacía:** estructura reutilizable sin datos financieros.
-
----
-
-# 23. Resultado de auditoría funcional
-
-## 23.1 Estado
-
-La auditoría funcional integral se considera completada.
-
-El modelo es suficientemente consistente para iniciar la fase técnica, sujeto a validación mediante pruebas de casos de uso.
-
-## 23.2 Correcciones aplicadas
-
-- Separación entre `Financiado` y `Aportes históricos`.
-- Componentes diferenciados entre compra única y presupuesto.
-- Gastos múltiples permitidos solo en componentes de presupuesto.
-- Checkpoints con logro histórico, cobertura actual y componentes completados.
-- Checkpoint final abierto para objetivos sin fecha.
-- Fórmulas de integridad monetaria.
-- Estados derivados y explícitos para objetivos y componentes.
-- Reglas deterministas de tranquilidad.
-- Fórmulas de aporte mínimo e ideal.
-- Periodos quincenales definidos.
-- Prioridad determinista para la siguiente acción.
-- Operaciones offline idempotentes.
-- Bloqueo de moneda después de actividad financiera.
-- Archivos de importación, plantilla y backup versionados.
-- Criterios de cierre y cierre anticipado.
-- Confirmación de cambio de zona horaria.
-
-## 23.3 Riesgos aceptados para el MVP
-
-- `Último cambio confirmado gana` para ediciones no financieras.
-- Sin reservas internas por componente.
-- Sin pagos parciales para compras únicas.
-- Solo dos decimales para todas las monedas.
-- Registro abierto sin panel administrativo.
-- Accesibilidad básica en lugar de cumplimiento formal WCAG AA.
-- Solo aportes disponibles offline; otras operaciones requieren conexión.
-- No hay asignación automática de dinero entre objetivos.
-
-## 23.4 Casos obligatorios de validación antes del desarrollo
-
-1. Viaje con checkpoints acumulativos, compras únicas y presupuestos variables.
-2. Home gym con compras por componentes y cambios de precios.
-3. Retiro después de haber alcanzado un checkpoint.
-4. Componente compartido entre varios checkpoints.
-5. Objetivo sin fecha con aporte planificado.
-6. Objetivo sin fecha sin aporte planificado.
-7. Compra anulada y devolución real.
-8. Gasto de presupuesto superior al estimado.
-9. Aporte offline sincronizado más de una vez.
-10. Transferencia entre objetivos y reversión por error.
-11. Importación de plantilla con esquema compatible e incompatible.
-12. Cierre con sobrante.
-13. Cierre por debajo de la meta original.
-14. Cambio de zona horaria.
-15. Papelera y eliminación permanente.
-
+- The user may define up to three sequential future phases.
+- Each phase specifies a number of calendar months and a hypothetical amount per contribution. The
+  goal frequency applies that amount once or twice in each simulated month.
+- The final phase may optionally continue until the next item deadline or the final target.
+- Only contributions are simulated.
+- The report shows projected funded and available money by month, expected target completion when
+  calculable, and the month in which each unpurchased item becomes affordable.
+- Affordability is informational. The simulation never assumes that an affordable item is bought
+  and never reduces hypothetical available money for it.
+- Closing or refreshing the simulation discards it.
+
+Invalid duration, invalid money, non-sequential phases, or more than three phases is rejected.
+
+## 8. Goal lifecycle
+
+- Archive removes a goal from the default active list without altering its history.
+- Restore returns an archived goal to the active list.
+- Permanent deletion requires explicit confirmation and removes the aggregate according to the
+  documented database cascade.
+- Archived goals remain readable but cannot receive financial mutations until restored.
+
+The dashboard groups totals by currency. It never sums unlike currencies.
+
+## 9. Required user experience
+
+The MVP has these primary surfaces:
+
+1. authentication and account recovery;
+2. active goals dashboard;
+3. create/edit goal;
+4. goal detail with summary, guidance, items, and recent history;
+5. add/edit contribution or withdrawal;
+6. purchase/undo item;
+7. complete financial history;
+8. temporary simulator;
+9. archived goals;
+10. profile and deployment-aware account settings.
+
+Every user-facing flow needs loading, empty, success, error, and disabled states. Destructive actions
+require confirmation. Forms must preserve user input after recoverable server errors.
+
+The interface is mobile-first, keyboard usable, screen-reader meaningful, and does not communicate
+status through color alone. Money always displays with its currency and dates follow the user's
+locale while retaining month-level business semantics.
+
+Planning changes that can alter target, deadlines, or guidance show an impact preview. Switching
+target mode requires confirmation. A fixed-goal item or actual purchase price that exceeds the
+current target requires the explicit keep-target or increase-target choice.
+
+## 10. Acceptance examples
+
+### Japan
+
+A user creates a fixed USD 3,000 goal starting in July, ending next February, with two planned
+contributions per month. They add USD 900 flights due in October and a USD 700 hotel. The app
+includes the flight in the cumulative October requirement, recommends a monthly and per-contribution
+amount, and updates guidance from real contributions. Purchasing the flight for USD 850 records
+USD 850 spent, keeps funded money unchanged, and leaves the fixed target at USD 3,000.
+
+### Home gym
+
+A user creates an item-derived goal with no final month and adds equipment. The target equals the
+sum of expected prices. When a USD 300 dumbbell set is purchased for USD 280, available money falls
+by USD 280 and the target uses USD 280 for that item. With no due months or preferred amount, the
+app shows totals but intentionally shows no pace status.
+
+### Isolation
+
+Two registered users can use the same deployment. Neither API calls nor direct database access
+under their authenticated roles can read or mutate the other's profiles, goals, items, or ledger.
+
+## 11. Requirement traceability
+
+The approved discovery requirements are retained in `feature-requirements.md`. This document
+incorporates all of them:
+
+| Requirement | Canonical section |
+|---|---|
+| R1 Manage simple financial goals | 4.1 Goal |
+| R2 Record and correct contributions | 5 Financial behavior |
+| R3 Show understandable money totals | 4.3 Financial transaction |
+| R4 Derive cumulative deadlines from dated items | 4.2 Goal item; 6.2 Dated plan |
+| R5 Calculate guidance from contribution frequency | 6.1–6.2 Planning and dated plan |
+| R6 Show a small explainable status | 6.4 Status |
+| R7 Manage items in both target modes | 4.2 Goal item |
+| R8 Purchase an item using goal funds | 4.3 and 5 Financial behavior |
+| R9 Preview a temporary contribution schedule | 7 Temporary simulation |
+| R10 Withdraw available goal money | 4.3 and 5 Financial behavior |
+| R11 Undo an item purchase | 5.2 Editing and correcting |
+| R12 Edit a purchased item safely | 5.2 Editing and correcting |
+| R13 Keep fully funded goals under user control | 6.4 Status; 8 Lifecycle |
+| R14 Validate history after edits | 5.2 Editing and correcting |
+| R15 Delete pending items with confirmation | 5.2 Editing and correcting; 9 UX |
+| R16 Switch target mode with impact confirmation | 9 Required UX |
+| R17 Use month-level deadlines | 4.1 Goal; 6.2 Dated plan |
+| R18 Date real financial transactions | 5.1 Recording |
+| R19 Show one financial history | 5.2 Editing and correcting |
+| R20 Isolate a small number of users | 2 Users and deployment |
+| R21 Require authentication | 2 Users and deployment |
+| R22 Archive, restore, or permanently delete | 8 Goal lifecycle |
+| R23 Control registration at deployment level | 2 Users and deployment |
+| R24 Recover passwords by instance capability | 2 Users and deployment |
+| R25 Project open goals only with a preference | 6.3 Open goals |
+| R26 Keep currencies isolated by goal | 4.1 Goal; 8 Lifecycle |
+| R27 Evaluate progress at month boundaries | 6.4 Status |
+| R28 Delete erroneous contributions/withdrawals safely | 5.2 Editing and correcting |
+| R29 Reject future real transactions | 5.1 Recording |
+| R30 Edit planning fields with impact preview | 9 Required UX |
+| R31 Handle real item-price overages explicitly | 4.2 Goal item; 9 UX |
+| R32 Treat an empty item-derived goal as incomplete | 4.2 Goal item |
+
+If the discovery record and this document differ, this document governs. A product change must
+update this file first, then the architecture and implementation plan.

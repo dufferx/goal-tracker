@@ -4,146 +4,143 @@ This file defines repository-wide instructions for coding agents and contributor
 
 ## Source of truth
 
-Before implementing a milestone, read the relevant sections of these documents:
+Before implementing a milestone, read in this order:
 
-1. `docs/GoalTracker_Product_Requirements_Master.md` — authoritative product and business rules.
+1. `docs/GoalTracker_Product_Requirements_Master.md` — authoritative product behavior.
 2. `docs/GoalTracker_Technical_Architecture.md` — authoritative technical decisions.
-3. `docs/GoalTracker_Architecture_Blueprint.md` — system boundaries and dependency direction.
-4. `docs/GoalTracker_Implementation_Plan.md` — milestone scope, order, and acceptance criteria.
-5. `docs/GoalTracker_Milestones_and_Git_Strategy.md` — branches, commits, PRs, and releases.
-6. `docs/GoalTracker_Codex_Milestone_Prompts.md` — concise execution checklist for each milestone.
-7. `docs/GoalTracker_Claude_Design_Prompt.md` — UI direction, primarily for M11.
+3. `docs/GoalTracker_Architecture_Blueprint.md` — boundaries and dependency direction.
+4. `docs/GoalTracker_Implementation_Plan.md` — milestone scope and exit criteria.
+5. `docs/GoalTracker_Milestones_and_Git_Strategy.md` — branches, commits, PRs, releases.
+6. `docs/GoalTracker_Codex_Milestone_Prompts.md` — execution checklists.
+7. `docs/GoalTracker_Claude_Design_Prompt.md` — UI direction, primarily for M5.
 
-`docs/GoalTracker_Codex_Master_Prompt.md` summarizes the standing implementation rules.
+`docs/GoalTracker_Codex_Master_Prompt.md` summarizes standing implementation rules.
+`feature-requirements.md` and `implementation-plan.md` are retained discovery records; the files
+under `docs/` govern if they differ.
 
-Do not invent or reinterpret business rules. If an implementation detail is absent, choose the
-simplest option consistent with the documents and record the decision in the appropriate project
-documentation. Product requirements take precedence for behavior; technical architecture governs
-implementation. Stop and surface any genuine conflict between them.
+Do not invent or reinterpret business rules. Product requirements take precedence for behavior;
+technical architecture governs implementation. Surface genuine conflicts before coding.
 
-## Current delivery model
+## Delivery model
 
-- Implement milestones sequentially from M0 through M12.
+- Implement D0, then M1 through M6 sequentially.
 - Work only within the milestone requested by the user.
-- Do not begin a later milestone until the prior milestone exit criteria pass.
-- Keep changes narrow; do not add future features, speculative abstractions, or unused dependencies.
-- A milestone includes migrations, backend, frontend, tests, and documentation when applicable.
-- Preserve existing behavior unless the active milestone explicitly changes it.
+- Do not begin a later milestone until the prior exit criteria pass.
+- Keep changes narrow and avoid future features, speculative abstractions, and unused dependencies.
+- A milestone includes its required migrations, backend, frontend, tests, and documentation.
+- Preserve existing and unrelated user changes.
 
-## Target stack and repository layout
+## Product boundary
 
-The intended repository is a `pnpm` monorepo:
+The MVP is a private, multi-user, self-hosted goal and budget tracker:
+
+- a goal is the primary aggregate;
+- goals have fixed or item-derived targets;
+- optional items represent planned purchases and may have due months;
+- due items provide cumulative deadline planning without a checkpoint entity;
+- real money is recorded in one financial ledger;
+- projections explain pace;
+- simulations are temporary contribution-only reports.
+
+Do not add tasks, standalone checkpoints, generic components, pay periods, transfers, bank
+connections, shared goals, admin UI, OAuth, native apps, push notifications, public APIs,
+persistent simulations, AI, or mixed-currency goal totals.
+
+## Repository layout and stack
+
+The intended pnpm monorepo is:
 
 ```text
 apps/
-  web/          React + Vite + TypeScript SPA/PWA
-  api/          lightweight TypeScript API
+  web/          React + Vite + TypeScript SPA
+  api/          Fastify TypeScript API
 packages/
-  domain/       pure domain engines and rules
-  database/     Drizzle schema, repositories, and generated types
-  contracts/    API, validation, and serialization contracts
-  ui/           shared shadcn/ui-based components
-  config/       shared tool configuration
+  domain/       Pure domain engines and rules
+  database/     Drizzle mappings and repositories
+  contracts/    Zod API and serialization contracts
+  ui/           Shared presentational components
+  config/       Shared tool configuration
 supabase/
-  migrations/  the only schema migration source of truth
+  migrations/  Sole schema migration source
   seed.sql
   config.toml
 docs/
 tests/
 ```
 
-Docker Compose is the reference environment for local development and self-hosting. Supabase
-provides PostgreSQL and Auth; Drizzle provides typed data access but must never manage migrations.
+Docker Compose is the reference environment. Supabase provides PostgreSQL and Auth. Drizzle provides
+typed access but never manages migrations.
 
 ## Dependency boundaries
-
-Keep dependencies flowing in this direction:
 
 ```text
 web      -> contracts, ui
 api      -> domain, database, contracts
-domain   -> shared code only
 database -> contracts, generated types
+domain   -> TypeScript standard library only
 ui       -> no authoritative domain logic
 ```
 
-- Keep `packages/domain` free of React, Supabase, Drizzle, HTTP, filesystem, and network concerns.
-- Put orchestration, authorization, DTO validation, and transaction boundaries in the API/application
-  layer.
-- Put persistence behind typed repositories in `packages/database`.
-- Share typed contracts and validation instead of duplicating request or response shapes.
-- Do not place authoritative business rules in React components.
-- Organize backend code by domain module rather than only by horizontal CRUD layers.
+- Keep domain free of React, Supabase, Drizzle, HTTP, filesystem, clocks, and network concerns.
+- Put orchestration, authorization, DTO validation, and transaction boundaries in the API.
+- Put persistence behind typed repositories.
+- Share contracts instead of duplicating request or response shapes.
+- Keep routes thin and organize backend code by domain module.
 
-## Non-negotiable domain invariants
+## Non-negotiable invariants
 
-- A goal is the primary aggregate; all user data is private and isolated.
-- Monetary progress depends only on money. Tasks never change monetary progress.
-- Store money as integer minor units, never floating point. The MVP assumes two decimal places.
-- Use UUID v4 identifiers.
-- Separate business dates from technical timestamps.
-- Financial events are authoritative; snapshots are reconstructable caches.
-- Every financial mutation goes through the backend and the single Financial Engine interface.
-- Never insert financial events directly from the frontend.
-- Financial mutations require idempotency keys; a retry returns the original result.
-- Commit an event and its snapshot atomically using explicit transactions.
-- Use pessimistic snapshot locking where required to prevent double spending.
-- Reject mutations that create a negative balance at any point in the historical sequence.
-- Order financial history deterministically by effective date, creation timestamp, then ID.
-- Rebuild the full sequence after retroactive edits or voids.
-- Transfers and transfer reversals are atomic across both goals and require matching currencies.
-- Errors are voided; real refunds create referenced financial events.
-- Goal currency becomes immutable after the first financial event.
-- The Projection Engine is pure, deterministic, infrastructure-free, and exposes one public entry
-  point returning calculations, tranquility, explanation, and recommendation together.
-- Simulations run in memory and have no side effects until the user confirms an action.
-- Import, export, backup, and template formats are centralized and versioned.
-- Offline MVP support is limited to cached reads and idempotent deposit creation/synchronization.
-- Each authoritative business rule must exist in exactly one module.
+- All application data is private and isolated by authenticated owner.
+- Money uses integer minor units; JSON serialization must avoid JavaScript precision loss.
+- UUID v4 identifies application records.
+- Business months/dates are separate from technical timestamps.
+- Financial ledger entries are the authoritative monetary facts.
+- Funded, spent, available, targets, purchase state, and guidance are derived.
+- Every financial mutation uses the backend's single Financial Engine path.
+- Lock the goal, replay its full deterministic history, and persist within an explicit transaction.
+- Reject any mutation producing a negative funded, spent, or available historical prefix.
+- History order is effective date, creation timestamp, then ID.
+- Purchase requires sufficient available money; undo is full and references one purchase.
+- Currency becomes immutable after the first financial transaction.
+- Projection and simulation engines are pure, deterministic, and infrastructure-free.
+- Simulation never persists, purchases items, or alters real state.
+- Retry protection uses committed transaction state and disabled/submitting UI controls; do not add
+  an offline or idempotency subsystem.
+- Each authoritative business rule exists in exactly one module.
 
-## Database and security rules
+## Database and security
 
-- Supabase migrations are the sole schema history. Do not generate or apply Drizzle migrations.
-- Enforce simple structural integrity with PostgreSQL constraints and contextual rules in the backend.
-- Use RLS for user isolation and test that one user cannot access another user's data.
-- Use JSONB only for genuinely flexible metadata, not core domain fields.
-- Use selective soft deletion; do not add `deleted_at` indiscriminately.
-- Keep profiles separate from Supabase Auth data.
-- Do not expose secrets, privileged database credentials, or sensitive audit context to the client.
-- No AI model may access the database directly; AI is outside the MVP.
-
-## Product scope guardrails
-
-The MVP is web/PWA, English-first, self-hosted, and email/password based. Do not add OAuth, native
-mobile apps, bank connections, shared goals, admin roles/UI, push notifications, public APIs,
-multiple currencies within one goal, persistent simulations, or AI features unless the source docs
-and requested milestone are explicitly updated.
+- Supabase migrations are the sole schema history; never generate Drizzle migrations.
+- Use PostgreSQL constraints for structural integrity and backend replay for contextual rules.
+- Enable and test RLS for every exposed application table.
+- Normal application data flows through the API; the browser uses Supabase directly only for Auth.
+- Derive ownership from verified identity, never request bodies or mutable user metadata.
+- Never expose service, secret, database, SMTP, JWT-signing, or backup credentials.
+- Use JSONB only for genuinely flexible metadata, not core fields.
+- Use selective archive state; do not add `deleted_at` indiscriminately.
+- No AI system may access the database in the MVP.
 
 ## Implementation expectations
 
-- Inspect the repository and working tree before editing.
-- Preserve unrelated user changes.
-- Prefer clear code over clever compression or premature generalization.
-- Add loading, empty, success, and error states to user-facing flows.
-- Important or destructive changes require explicit confirmation in the UI.
-- Keep current derived values calculated on demand; persist only historical facts or justified
-  performance caches.
-- Update documentation with behavior, environment, migration, backup, or operational changes.
-- For UI work, meet responsive and accessibility requirements in the product/design documents and
-  include screenshots in the PR.
+- Inspect branch, working tree, and relevant documents before editing.
+- Prefer clear code and the smallest implementation that satisfies the active milestone.
+- Add loading, empty, success, error, disabled, and confirmation states to user-facing flows.
+- Preserve form input after recoverable errors.
+- Calculate current derived values on demand; persist only historical facts.
+- Update operational and behavior documentation with the implementation.
+- Meet responsive and accessibility requirements and include UI screenshots in PR handoffs.
 
-## Testing and validation
+## Testing
 
-Add success and failure coverage at the appropriate levels:
+Add success, failure, boundary, concurrency, and isolation coverage at the appropriate levels:
 
-- unit tests for domain engines, checkpoint rules, simulations, and serialization;
-- table-driven tests for financial and projection logic;
-- database integration tests for migrations, constraints, transactions, locks, and snapshot rebuilds;
-- API integration tests for authorization and mutations;
-- RLS tests for cross-user isolation;
-- end-to-end and offline tests when the milestone requires them.
+- table-driven unit tests for ledger, targets, projection, simulation, and serialization;
+- database integration tests for migrations, constraints, transactions, locks, and RLS;
+- API tests for authentication, authorization, validation, and financial mutations;
+- web tests for visible states and accessibility;
+- end-to-end tests for Japan and home-gym journeys;
+- self-hosting, backup, and restore tests in M6.
 
-Before declaring work complete, run and report:
+Before declaring completion, run and report:
 
 ```sh
 pnpm install
@@ -154,24 +151,23 @@ pnpm build
 git diff --check
 ```
 
-Also run milestone-specific integration or end-to-end tests. If Docker or local Supabase is
-unavailable, state exactly what could not run and provide the command needed to validate it.
+Also run milestone-specific validation. If tooling, Docker, or local Supabase is unavailable, state
+exactly what could not run and provide the command required to validate it.
 
-## Git and delivery
+## Git and handoff
 
-- Use `development` as the integration branch; `main` is for production-ready releases.
-- Start work from `development` and target pull requests to `development`.
-- Use milestone-scoped branches such as `feat/repository-foundation`.
-- Use Conventional Commits: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `build`, or `ci`.
-- Do not create, merge, or publish a pull request unless explicitly requested.
+- Use `development` as integration and `main` for production-ready releases.
+- Use milestone branches from the canonical plan.
+- Use Conventional Commits.
+- Do not commit, push, create, publish, or merge a PR unless explicitly requested.
 - Never commit directly to `main`.
 
-Final handoff notes must include:
+Final handoff notes include:
 
 - summary and milestone;
 - files changed;
 - migrations;
 - tests added;
-- commands run and their results;
+- commands run and results;
 - unresolved risks or unavailable validation;
 - next recommended milestone.

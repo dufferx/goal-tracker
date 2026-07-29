@@ -1,116 +1,99 @@
 # Goal Tracker
 
-Goal Tracker is being built as a self-hosted web application for personal financial goals. The
-repository currently contains the M0 foundation only: a React web shell, a Fastify API, shared
-workspaces, local Supabase configuration, and development tooling. It intentionally contains no
-product features, authentication, application tables, or service worker.
+A deliberately small, open-source, self-hosted goal and budget tracker for personal savings plans.
 
-## Prerequisites
+Goal Tracker records contributions and spending, supports optional planned purchases, explains
+whether a dated plan is on pace, and lets users temporarily simulate future contribution amounts.
+It supports multiple private accounts so a small deployment can be shared without sharing data.
 
-- Node.js 24 LTS (see `.nvmrc` and `.node-version`)
-- pnpm 10.33.1
-- Docker Desktop or another Docker-compatible runtime
+## Product model
 
-The Supabase CLI is pinned as a project dependency. Do not install a separate global version.
+- **Goals** have a fixed budget or a target calculated from item prices.
+- **Items** are optional planned purchases or expenses and may have a due month.
+- **Transactions** record contributions, withdrawals, purchases, and purchase undo.
+- **Guidance** estimates the monthly and per-contribution amount needed for dated plans.
+- **Simulation** temporarily reports what hypothetical contributions would make affordable.
 
-## Start from a clean clone
+There are no tasks, standalone checkpoints, transfers, bank integrations, shared goals, or saved
+simulations in the MVP.
 
-```sh
-cp .env.example .env
-pnpm install --frozen-lockfile
-pnpm dev
-```
+## Current state
 
-`pnpm dev` starts or verifies the local Supabase stack and then keeps the API and web development
-servers running. Open:
+The repository contains the initial monorepo foundation and the D0 simplified-product documentation
+reset. Feature implementation proceeds sequentially:
 
-- web: <http://127.0.0.1:5173>
-- API health: <http://127.0.0.1:3000/health>
-- Supabase Studio: <http://127.0.0.1:54323>
+| Milestone | Scope                                    |
+| --------- | ---------------------------------------- |
+| D0        | Canonical product and architecture reset |
+| M1        | Identity and user isolation              |
+| M2        | Goals and item planning                  |
+| M3        | Financial ledger and history             |
+| M4        | Guidance and temporary simulation        |
+| M5        | Integrated accessible web experience     |
+| M6        | Self-hosted hardening and release        |
 
-The first Supabase start downloads Docker images and can take several minutes.
+Do not treat a planned milestone as an implemented feature.
 
-To run the application processes without changing local infrastructure:
-
-```sh
-pnpm dev:apps
-```
-
-To manage infrastructure explicitly:
-
-```sh
-pnpm infra:start
-pnpm db:reset
-pnpm infra:stop
-```
-
-`db:reset` targets the local stack explicitly, reapplies every migration in `supabase/migrations`,
-and then runs `supabase/seed.sql`. Supabase migrations are the only schema history. Drizzle is used
-only for typed PostgreSQL access and must not generate or apply migrations.
-
-## Docker Compose development reference
-
-The root Compose file runs the web and API development applications:
-
-```sh
-pnpm infra:start
-docker compose up --build
-```
-
-Stop the application containers with `docker compose down`, then stop Supabase with
-`pnpm infra:stop`.
-
-The Supabase CLI stack and this Compose file are development-only. The CLI stack uses default
-credentials, has no production TLS or rate limiting, and must not be exposed to external traffic.
-M12 owns the hardened production Compose deployment and the production self-hosted Supabase stack.
-
-## Repository layout
+## Intended stack
 
 ```text
-apps/
-  api/          Fastify TypeScript API
-  web/          React + Vite web application
-packages/
-  config/       Shared ESLint and TypeScript configuration
-  contracts/    Shared contracts (introduced by owning milestones)
-  database/     Drizzle PostgreSQL access
-  domain/       Infrastructure-free domain code
-  ui/           Shared shadcn/ui-based components
-supabase/
-  migrations/  Sole schema migration history
-  seed.sql      Local development seed entry point
+apps/web        React + Vite + TypeScript
+apps/api        Fastify + TypeScript
+packages/domain Pure business engines
+packages/database Drizzle typed access
+packages/contracts Zod contracts
+packages/ui      Shared UI components
+supabase/        PostgreSQL/Auth configuration and migrations
 ```
 
-Dependencies flow from applications toward shared packages. In particular, `packages/domain` must
-remain independent of React, Fastify, Supabase, Drizzle, HTTP, filesystem, and network concerns.
+The project uses pnpm workspaces and Turborepo. Docker Compose is the reference local and
+self-hosted environment. Supabase migrations are the only database migration source; Drizzle is
+used for typed access only.
 
-## Quality checks
+## Documentation
 
-Run the same independent checks as CI:
+Read in this order:
+
+1. [Product requirements](docs/GoalTracker_Product_Requirements_Master.md)
+2. [Technical architecture](docs/GoalTracker_Technical_Architecture.md)
+3. [Architecture blueprint](docs/GoalTracker_Architecture_Blueprint.md)
+4. [Implementation plan](docs/GoalTracker_Implementation_Plan.md)
+5. [Milestones and Git strategy](docs/GoalTracker_Milestones_and_Git_Strategy.md)
+6. [Contributor guide](AGENTS.md)
+
+The root `feature-requirements.md` and `implementation-plan.md` preserve the approved discovery
+conversation and detailed requirement mapping. Canonical documents under `docs/` govern execution.
+
+## Repository setup
+
+Prerequisites:
+
+- Node.js version declared in `.nvmrc`;
+- pnpm version declared in `package.json`;
+- Docker and Docker Compose for Supabase and full integration tests.
+
+Install and validate:
 
 ```sh
-pnpm format:check
+corepack enable
+pnpm install
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
-docker compose config
 git diff --check
 ```
 
-The API test exercises `GET /health` using Fastify injection. The web smoke test renders the real
-application shell with React Testing Library.
+Environment and self-hosting instructions will be finalized in M6. Until then, do not infer
+production readiness from the repository foundation.
 
-## Environment variables
+## Contributing
 
-Copy `.env.example` to `.env` for local overrides. M0 uses:
+Work from `development`, implement only the active milestone, preserve unrelated changes, and
+follow [AGENTS.md](AGENTS.md). Pull requests target `development`; `main` is reserved for
+production-ready releases.
 
-| Variable       | Default                       | Purpose                                  |
-| -------------- | ----------------------------- | ---------------------------------------- |
-| `API_HOST`     | `127.0.0.1`                   | API bind address outside Compose         |
-| `API_PORT`     | `3000`                        | API port                                 |
-| `VITE_API_URL` | `http://127.0.0.1:3000`       | Browser-visible API URL                  |
-| `DATABASE_URL` | local Supabase PostgreSQL URL | Future server-side typed database access |
+## License
 
-Never commit `.env` or production credentials. The frontend must never receive privileged database
-credentials.
+This project is intended to be open source. The definitive license is the repository `LICENSE`
+file when present.
