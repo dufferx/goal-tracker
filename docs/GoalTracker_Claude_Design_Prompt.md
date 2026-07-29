@@ -1,311 +1,194 @@
-# Prompt for Claude Design — Goal Tracker Web/PWA
+# Goal Tracker — Product Design Brief
 
-You are the lead product designer for Goal Tracker, a self-hosted personal financial-goal planning app.
+**Status:** Approved direction for M5
+**Product:** Responsive web application, English-first
 
-Your job is to design the complete responsive web/PWA experience. Do not change business rules. The design must express the product model clearly and make financial planning feel calm, understandable, and actionable.
+Design a calm personal money-planning tool, not a project-management dashboard. The user should
+understand a goal in seconds: what it is for, how much is funded, how much remains available, what
+has been spent, what comes next, and whether the current plan is realistic.
 
-## Product concept
+## Experience principles
 
-Goal Tracker helps users manage separate financial goals such as:
+- Favor one obvious primary action per screen.
+- Use everyday money language; keep accounting and architecture terminology out of the UI.
+- Show totals and their relationships before charts.
+- Explain every pace status in text; color is supplementary.
+- Reveal detail progressively. History and simulation should not crowd the everyday contribution
+  flow.
+- Make month-based planning feel month-based; do not show invented day precision.
+- Treat destructive or financially meaningful actions with explicit confirmation.
+- Optimize first for phone widths, then wider screens.
 
-- a trip to Japan;
-- building a home gym;
-- an emergency fund;
-- a large purchase.
+## Information architecture
 
-The core questions are:
+Primary navigation:
 
-- How much progress have I made?
-- Am I on track?
-- How much should I save this period?
-- What is the next critical checkpoint?
-- What should I do next?
+- Goals
+- History, when viewed within a goal
+- Archived
+- Settings
 
-## Core metrics
+Authentication screens sit outside the application shell. Simulation is entered from a goal and
+returns to that goal; it is not a durable top-level object.
 
-Use these exact concepts:
+## Dashboard
 
-- Available
-- Invested
-- Funded
-- Historical contributions
+Show:
 
-The main progress metric is `Funded`.
+- active goal cards;
+- totals grouped by currency, never combined across currencies;
+- goal name, target when valid, funded progress, available money, next dated item, and pace status
+  when calculable;
+- an intentional incomplete-setup state for item-derived goals without items;
+- clear create-goal action.
 
-## Goal structure
+Avoid dense tables, task counters, global portfolio scores, and decorative charts without a direct
+decision they support.
 
-A goal may contain:
+## Goal detail
 
-- target;
-- optional final date;
-- checkpoints;
-- components;
-- tasks;
-- financial events;
-- projections;
-- simulations;
-- activity timeline.
+Use a clear hierarchy:
 
-Components have two types:
+1. goal identity and lifecycle;
+2. funded/target progress;
+3. available and spent money;
+4. guidance, explanation, and recommendation;
+5. primary contribution action;
+6. planned items;
+7. recent financial history;
+8. simulation entry.
 
-1. One-time purchase
-2. Budget
+For open goals without enough planning information, say why no pace is shown and offer the relevant
+next action: add a due month, final month, or preferred contribution. Do not label the user as
+behind when no required pace exists.
 
-Checkpoints distinguish:
+## Money model in the interface
 
-- historical achievement;
-- current coverage;
-- component completion.
+Use these terms consistently:
 
-## Tranquility states
+- **Funded:** contributions minus withdrawals;
+- **Available:** funded money not yet spent;
+- **Spent:** purchases after undo;
+- **Target:** fixed budget or item-derived current total;
+- **Remaining:** target minus funded, never the cash currently available.
+
+After a purchase, reinforce that funded progress stays intact while available money decreases. For
+an item-derived goal, show when actual price changed the target.
+
+## Goal and item forms
+
+Goal creation should be a short guided form:
+
+1. name and currency;
+2. fixed amount or “calculated from items”;
+3. start month and optional final month;
+4. one or two planned contributions per month;
+5. optional preferred contribution for open goals.
+
+Items belong inside goals and use name, expected price, and optional due month.
+
+For a fixed goal:
+
+- percentage entry may be offered as a convenience beside money entry;
+- show the converted money amount before saving;
+- if item totals exceed the budget, present two explicit choices: keep the goal target or increase
+  it to cover the items.
+
+For an item-derived goal, explain that adding or changing items changes the target.
+
+## Financial flows
+
+Contribution should be the fastest flow in the product. Default the date to today and allow a past
+date.
+
+Withdrawals, edits, deletes, purchases, and undo need enough context to prevent mistakes:
+
+- show resulting amounts when helpful;
+- block purchase with a plain explanation when available money is insufficient;
+- explain why purchased items cannot be deleted before undo;
+- warn that retroactive changes can be rejected if they make past balances invalid;
+- require confirmation for delete, purchase undo, archive, and permanent goal deletion.
+
+History is one chronological financial list with compact filters. Distinguish type with icon, label,
+and sign—not color alone. Reversals must visibly reference the purchase they undo.
+
+## Guidance
+
+Pace states are:
 
 - Ahead
 - On track
-- Tight
 - At risk
-- Late
+- Behind
 
-Every state must include an explanation.
+Fully funded is a separate completion message. Each status block includes:
 
-## Main design principle
+- the current state;
+- one-sentence reason;
+- recommended monthly amount;
+- recommended amount per contribution for the selected one/two frequency;
+- relevant next deadline or estimate.
 
-The product should prioritize:
+Use encouraging, factual wording. Avoid shame, gamification pressure, confetti by default, or false
+precision.
 
-1. tranquility status;
-2. next recommended action;
-3. critical checkpoint;
-4. progress;
-5. supporting financial details.
+## Simulator
 
-Do not design this as a generic budgeting dashboard.
+The simulator is explicitly labeled temporary and hypothetical.
 
-## Required screens
+- Support one to three sequential phases in a compact editor.
+- Each phase has a duration in months and an amount per contribution. Make it clear that the goal's
+  frequency applies that amount once or twice per month.
+- Let the final phase optionally continue until the next deadline or target.
+- Show duration, sequence, and amount validation inline.
+- Report a month-by-month trajectory, estimated target month when possible, and the month each item
+  becomes affordable.
+- Say that affordability does not mean the item was bought and does not change real available money.
+- Provide close/reset, not save. Refreshing or leaving may discard the report.
 
-### Authentication
+A small table or simple line visualization is appropriate only if it improves month-to-month
+comparison. Always provide the exact values in accessible text.
 
-- sign up;
-- sign in;
-- password recovery.
+## States and accessibility
 
-### Dashboard
+Every screen must define:
 
-Include:
+- initial loading;
+- empty;
+- recoverable error;
+- permission/session error;
+- successful mutation feedback;
+- disabled/submitting;
+- connection error state.
 
-- goal cards;
-- tranquility;
-- next action;
-- progress;
-- next/critical checkpoint;
-- recommended contribution;
-- secondary global summary;
-- sorting by manual order, priority, urgency, risk;
-- archived goals entry point.
-
-### Goal creation
-
-- template selection;
-- quick create;
-- finish setup now / later;
-- templates:
-  - simple savings;
-  - trip;
-  - component project;
-  - continuous fund.
-
-### Goal detail
-
-Header should surface:
-
-- tranquility;
-- next action;
-- funded progress;
-- available;
-- invested;
-- target;
-- minimum contribution;
-- ideal contribution.
-
-Sections:
-
-- overview;
-- roadmap/checkpoints;
-- components;
-- tasks;
-- activity;
-- simulations.
-
-### Financial actions
-
-A global action button with:
-
-- Add contribution first;
-- Withdrawal;
-- Transfer;
-- Purchase component;
-- Record budget expense;
-- Note.
-
-Adding a contribution should ask only for amount initially.
-
-### Components
-
-One-time purchase:
-
-- planned;
-- saving;
-- ready to buy;
-- purchased;
-- cancelled.
-
-Budget:
-
-- planned;
-- in use;
-- completed;
-- cancelled;
-- show estimated, spent, remaining.
-
-### Checkpoints
-
-Desktop:
-
-- timeline-oriented view.
-
-Mobile:
-
-- clear vertical list.
-
-Each checkpoint displays:
-
-- name;
-- date;
-- required amount;
-- current coverage;
-- historical achievement;
-- component completion;
-- tranquility;
-- shortfall;
-- recommended contribution.
-
-### Simulations
-
-Design a clear “what if” workspace:
-
-- change contribution;
-- change date;
-- change target;
-- change component cost;
-- cancel component;
-- compare current vs simulated;
-- apply only after explicit confirmation.
-
-### Activity timeline
-
-Filters:
-
-- Money
-- Purchases
-- Goal
-- Organization
-
-### Completion
-
-- celebration;
-- planned vs actual date;
-- time gained/lost;
-- funded;
-- invested;
-- budget variance;
-- surplus resolution;
-- close confirmation.
-
-### Archived and trash
-
-- archived goals section;
-- trash with restore;
-- permanent delete confirmation requiring goal name.
-
-### Offline states
-
-- cached/offline indicator;
-- pending deposit;
-- syncing;
-- synced;
-- failed;
-- needs review.
-
-## Responsive requirements
-
-Design both:
-
-- desktop;
-- mobile.
-
-The mobile version must feel like a native personal-finance app, not a compressed desktop page.
+Meet WCAG 2.2 AA intent: semantic landmarks, correct labels, keyboard access, visible focus, dialog
+focus management, sufficient contrast, reduced motion, large touch targets, and screen-reader
+announcements for mutation results. Preserve entered form values after recoverable errors.
 
 ## Visual direction
 
-- calm;
-- trustworthy;
-- modern;
-- spacious;
-- highly legible;
-- financially serious without looking corporate;
-- use shadcn/ui-friendly patterns;
-- avoid excessive gradients, glassmorphism, gamification, and dense dashboards.
+Use a restrained, warm-neutral system with one confident accent and a small semantic palette.
+Typography and spacing should carry hierarchy. Cards may group goals, but avoid nesting every
+section in another card. Use monospaced or tabular numerals for changing money values when it aids
+comparison. Motion should clarify state changes and remain optional.
 
-Use color to support tranquility, but never rely on color alone.
+Do not design UI for tasks, checkpoints as separate records, transfers, bank accounts, shared goals,
+admin dashboards, saved simulations, or AI.
 
-## Accessibility
+## Required design coverage
 
-Include:
+Provide responsive designs for:
 
-- strong contrast;
-- keyboard-friendly controls;
-- visible focus states;
-- readable status labels;
-- icons plus text;
-- touch-friendly targets.
+- sign in, registration-enabled and registration-disabled states, recovery;
+- empty and populated goal dashboard;
+- fixed and item-derived goal creation;
+- goal detail for dated, open, incomplete, and fully funded states;
+- item add/edit, over-budget decision, purchase, and undo;
+- contribution/withdrawal add and correction;
+- history filters;
+- temporary simulator;
+- archive/restore/permanent delete;
+- profile/settings and connection-error state.
 
-## Deliverables
-
-Provide:
-
-1. information architecture;
-2. navigation model;
-3. desktop wireframes;
-4. mobile wireframes;
-5. high-fidelity screens;
-6. component inventory;
-7. interaction notes;
-8. empty states;
-9. loading states;
-10. error states;
-11. warning/confirmation patterns;
-12. responsive behavior;
-13. design tokens;
-14. implementation notes for React + shadcn/ui.
-
-## Screens to prioritize first
-
-1. Dashboard
-2. Goal detail
-3. Add contribution
-4. Goal creation
-5. Checkpoint roadmap
-6. Components
-7. Simulation
-8. Completion summary
-
-## Important constraints
-
-- Do not invent collaborative goals.
-- Do not add bank connections.
-- Do not add AI chat to the MVP.
-- Do not add push notifications.
-- Do not add admin UI.
-- Do not alter formulas or business rules.
-- Do not hide important financial consequences behind decorative UI.
-- Keep the primary action obvious.
-
-Design the system so the user can understand “Am I okay?” within a few seconds of opening the app.
+Use the Japan trip and home-gym acceptance examples from the product requirements as the primary
+prototype journeys.

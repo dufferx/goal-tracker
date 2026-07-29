@@ -1,306 +1,70 @@
-# Codex Prompts by Milestone — Goal Tracker
-
-Use each prompt in a fresh Codex task after the previous milestone is merged into `development`.
-
----
-
-# M0 — Repository Foundation
-
-Implement milestone M0 from `docs/GoalTracker_Implementation_Plan.md`.
-
-Requirements:
-
-- initialize pnpm monorepo;
-- use Node.js 24 LTS, ESM, and pin the pnpm version in `package.json`;
-- create `apps/web` with React, Vite, TypeScript;
-- create `apps/api` with a minimal Fastify TypeScript HTTP server;
-- create packages `domain`, `database`, `contracts`, `ui`, `config`;
-- configure shadcn/ui for the shared `packages/ui` workspace using neutral placeholder tokens;
-- configure Drizzle for typed PostgreSQL access without installing, generating, or applying Drizzle migrations;
-- install and pin Supabase CLI as a root development dependency;
-- initialize the Supabase local directory, migration workflow, and seed file;
-- use Supabase CLI only for the local development stack; do not copy or maintain a production
-  self-hosted Supabase Compose stack in M0;
-- create a Docker Compose development reference for the web and API applications;
-- reserve production Docker Compose hardening and the production self-hosted Supabase stack for M12;
-- add root scripts for `dev`, `dev:apps`, `infra:start`, `infra:stop`, `db:reset`, `lint`,
-  `format`, `format:check`, `typecheck`, `test`, and `build`;
-- make `pnpm dev` start or verify local Supabase first and then keep web and API running;
-- configure shared ESLint, Prettier, TypeScript, and Vitest tooling;
-- add React Testing Library for web tests;
-- add GitHub Actions CI for install, format check, lint, typecheck, test, and build;
-- add a liveness health endpoint and automated API integration test;
-- add a real web render smoke test;
-- add `.env.example` and README.
+# Goal Tracker — Codex Milestone Prompts
 
-Implementation constraints:
+These prompts are execution checklists, not independent sources of product truth. Read
+`AGENTS.md` and the authoritative documents before using one.
 
-- use only pnpm workspace orchestration unless an additional build orchestrator is demonstrably
-  necessary;
-- pin dependency versions and commit the lockfile;
-- keep `packages/domain` independent from React, Fastify, Supabase, Drizzle, and other infrastructure;
-- configure shadcn/ui aliases in both `apps/web` and `packages/ui`, but do not establish final visual
-  design tokens in M0;
-- do not add a service worker, authentication, database tables, domain models, or product screens;
-- do not add placeholder abstractions for future milestones;
-- document the distinction between local Supabase CLI development and production self-hosting.
-
-Validation and exit criteria:
-
-- `pnpm install --frozen-lockfile` succeeds after the lockfile has been created;
-- `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` pass;
-- `pnpm supabase --version` succeeds using the project dependency;
-- `pnpm db:reset` succeeds against a clean local Supabase stack;
-- `GET /health` passes its automated integration test;
-- the web render smoke test passes;
-- `docker compose config` validates;
-- `git diff --check` passes;
-- README instructions are sufficient to start from a clean clone.
+## D0 — Documentation reset
 
-If Docker or Supabase cannot run in the execution environment, still complete all repository work,
-run every independent validation, and report the exact skipped command and reason. Do not claim the
-local infrastructure exit criteria passed unless they were actually executed.
+> Work only on D0. Replace obsolete authoritative documentation with the approved simplified
+> product: private goals, optional items, a single financial ledger, projection guidance, and
+> temporary contribution simulations. Remove instructions for tasks, standalone checkpoints,
+> components, transfers, persistent simulations, and snapshot-led progress. Align AGENTS, README,
+> milestone, architecture, and design documents. Do not change code, dependencies, or migrations.
+> Validate links, requirement coverage, working-tree scope, and `git diff --check`.
 
-Do not implement product features.
+## M1 — Identity and isolation
 
----
-
-# M1 — Identity and User Isolation
+> Work only on M1 from `development`. Implement Supabase email/password session flows, profiles,
+> deployment-controlled signup, recovery behavior, API token verification, owner-scoped
+> repositories, and RLS. Prove two users cannot access one another's data through the API or direct
+> authenticated database access. Do not implement goal planning or finance beyond the minimal
+> ownership fixture needed for isolation tests.
 
-Implement M1.
+## M2 — Goals and items
 
-Requirements:
+> Work only on M2 after M1 passes. Implement fixed and item-derived goals, month-level planning, one
+> or two planned contributions per month, optional preferred contribution, optional items and due
+> months, target derivation, explicit fixed-budget overage handling, archives, and permanent delete.
+> Do not add financial ledger, status, or simulation behavior.
 
-- Supabase email/password auth;
-- registration, login, logout, password recovery;
-- `profiles` migration;
-- default currency and effective timezone;
-- authenticated API middleware;
-- RLS policies;
-- cross-user isolation tests;
-- confirmation flow when browser timezone differs.
+## M3 — Financial ledger
 
-Keep OAuth out of scope.
+> Work only on M3 after M2 passes. Implement the authoritative ledger and the single locked
+> financial mutation path for contributions, withdrawals, purchases, full undo, edits,
+> and deletes. Replay the complete ordered history and reject every negative prefix. Derive funded,
+> spent, available, item purchase state, actual price, target, and history. Add concurrency,
+> transaction, RLS, API, and UI coverage. Do not implement projections or simulation.
 
----
-
-# M2 — Goals Core
-
-Implement M2.
-
-Requirements:
-
-- goals migration and Drizzle schema;
-- create, list, read, update goals;
-- quick-create flow;
-- target modes;
-- saving frequency;
-- planned contribution;
-- priority and manual ordering;
-- states, archive, trash, restore;
-- separate archived view;
-- currency lock after first financial event;
-- activity events for lifecycle changes.
+## M4 — Guidance and simulation
 
-No components or financial events yet beyond the minimum needed to enforce currency locking later.
+> Work only on M4 after M3 passes. Build pure deadline and open-goal projection rules, monthly and
+> per-contribution recommendation, pace statuses, fully-funded condition, explanation, and estimate
+> through one public domain entry point. Add a side-effect-free simulator with at most three
+> sequential phases whose amount is per contribution, plus informational item-affordability
+> reporting. Prove it never writes data or
+> assumes purchases.
 
----
+## M5 — Product UX
 
-# M3 — Planning Model
+> Work only on M5 after M4 passes. Integrate a calm mobile-first experience for authentication,
+> dashboard, goal detail, item and transaction flows, history, simulation, archives, and settings.
+> Complete loading, empty, error, success, disabled, confirmation, responsive, keyboard,
+> screen-reader, contrast, and connection-error states. Do not add new product features.
 
-Implement M3.
+## M6 — Self-hosted release
 
-Requirements:
+> Work only on M6 after M5 passes. Produce pinned, production-oriented self-hosting configuration;
+> environment validation; TLS, signup, SMTP, secrets, infrastructure backup, restore, upgrade,
+> rollback, logging, and operator documentation; and clean-install/recovery tests. Review current
+> upstream breaking changes rather than relying on old image or gateway assumptions.
 
-- components with `one_time_purchase` and `budget`;
-- checkpoints;
-- automatic final checkpoint;
-- checkpoint-components join table;
-- tasks with only one optional context;
-- cumulative checkpoint validation;
-- activity timeline entries;
-- roadmap UI;
-- unit and integration tests.
+## Completion instruction
 
-Ensure component-calculated goals recalculate their target correctly.
+For every prompt:
 
----
-
-# M4 — Financial Engine
-
-Implement M4.
-
-Requirements:
-
-- financial events, revisions, snapshots migrations;
-- FinancialEngine public interface;
-- deposit;
-- withdrawal;
-- purchase one-time component;
-- register budget expense;
-- atomic event and snapshot update;
-- idempotency for every mutation;
-- snapshot reconstruction;
-- historical balance validation;
-- backend-only writes;
-- comprehensive table-driven tests.
-
-Do not implement transfers, refunds, or voids yet.
-
----
-
-# M5 — Transfers and Corrections
-
-Implement M5.
-
-Requirements:
-
-- transfers entity;
-- atomic transfer with stable lock ordering;
-- edit financial event with revision;
-- void event;
-- restore voided event;
-- total and partial refunds;
-- transfer void;
-- complete chronological reconstruction;
-- checkpoint achievement recalculation;
-- rejection of changes causing negative historical balance.
-
----
-
-# M6 — Projection Engine
-
-Implement M6.
-
-Requirements:
-
-- pure domain package;
-- abstract saving periods;
-- semi-monthly and monthly schedules;
-- critical checkpoint;
-- checkpoint and final-goal projections;
-- minimum contribution;
-- ideal contribution;
-- projected completion date;
-- tranquility states;
-- explanation tree;
-- prioritized recommended actions;
-- no database or API dependencies;
-- exhaustive unit tests.
-
----
-
-# M7 — Simulation Engine
-
-Implement M7.
-
-Requirements:
-
-- immutable temporary snapshots;
-- override model;
-- compare base and simulated projections;
-- support amount, date, target, component-cost, and cancellation scenarios;
-- API endpoint;
-- UI comparison;
-- applying a scenario must call normal use cases.
-
-No simulation persistence.
-
----
-
-# M8 — Activity and Completion
-
-Implement M8.
-
-Requirements:
-
-- unified timeline;
-- filters;
-- checkpoint achievement history;
-- current coverage;
-- completion detection;
-- close flow;
-- surplus resolution;
-- close below original target;
-- archive after confirmation;
-- completion summary.
-
----
-
-# M9 — Offline PWA
-
-Implement M9.
-
-Requirements:
-
-- installable PWA;
-- service worker;
-- cache previously loaded data;
-- IndexedDB offline deposit queue;
-- unique client operation IDs;
-- sync states;
-- automatic retry;
-- needs-review state for archived/trashed target;
-- no duplicate deposits after replay;
-- UI indicators for pending and failed sync.
-
----
-
-# M10 — Import, Export, Backup
-
-Implement M10.
-
-Requirements:
-
-- versioned JSON schemas;
-- full user backup;
-- restore;
-- goal export;
-- empty goal-template export/import;
-- CSV export;
-- preview and selection;
-- schema compatibility validation;
-- file size limits;
-- safe failure without partial ambiguous imports.
-
----
-
-# M11 — UX Integration
-
-Implement the approved Claude Design output without changing business rules.
-
-Requirements:
-
-- dashboard;
-- goal detail;
-- roadmap;
-- action menu;
-- deposit-first UX;
-- responsive navigation;
-- empty/loading/error states;
-- accessible primary flows;
-- screenshots for desktop and mobile;
-- preserve tests.
-
----
-
-# M12 — Hardening and Release
-
-Implement M12.
-
-Requirements:
-
-- security and RLS audit;
-- rate limits where justified;
-- audit logs;
-- complete integration and E2E suite;
-- Japan and Home Gym fixtures;
-- production Docker Compose;
-- SMTP docs;
-- backup and upgrade docs;
-- migration upgrade test;
-- MIT license;
-- changelog;
-- release checklist.
-
-Do not claim completion unless fresh deployment and full validation pass.
+1. inspect the branch and working tree;
+2. preserve unrelated user changes;
+3. state any genuine conflict before implementation;
+4. run repository and milestone validation;
+5. report files, migrations, tests, results, limitations, risks, and the next milestone;
+6. do not commit or publish a pull request unless explicitly asked.

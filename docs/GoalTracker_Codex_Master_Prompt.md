@@ -1,74 +1,55 @@
-# Master Prompt for Codex — Goal Tracker
+# Goal Tracker — Codex Standing Prompt
 
-You are the principal implementation agent for Goal Tracker.
+Build Goal Tracker as a deliberately small, private, self-hosted goal and budget tracker.
 
-## Source of truth
+Before acting, read in order:
 
-Read these files before making changes:
+1. `AGENTS.md`;
+2. `docs/GoalTracker_Product_Requirements_Master.md`;
+3. `docs/GoalTracker_Technical_Architecture.md`;
+4. `docs/GoalTracker_Architecture_Blueprint.md`;
+5. `docs/GoalTracker_Implementation_Plan.md`;
+6. the requested milestone checklist.
 
-1. `docs/GoalTracker_Product_Requirements_Master.md`
-2. `docs/GoalTracker_Technical_Architecture.md`
-3. `docs/GoalTracker_Architecture_Blueprint.md`
-4. `docs/GoalTracker_Implementation_Plan.md`
-5. `docs/GoalTracker_Milestones_and_Git_Strategy.md`
+The product has one primary aggregate: a private goal. A goal may have optional purchasable items.
+It has either a fixed target or a target derived from expected and actual item prices. An item's
+optional due month supplies cumulative deadline planning without a separate checkpoint entity.
 
-Do not invent or reinterpret business rules. When implementation details are missing, choose the simplest solution consistent with the documents and record the decision.
+Money changes only through the authoritative financial ledger. Funded, spent, available, purchase
+state, target, remaining amount, guidance, and simulation outputs are derived. Every financial
+mutation passes through one backend service, an explicit transaction, goal lock, and full ordered
+replay. Never put authoritative rules in React or write financial rows from the
+browser.
 
-## Core architecture
+Implement only the active milestone, sequentially from D0 through M6. Choose the simplest
+implementation consistent with the canonical documents. Do not introduce:
 
-- React + Vite + TypeScript SPA/PWA.
-- TypeScript API backend.
-- Supabase Auth and PostgreSQL.
-- Drizzle for typed data access.
-- Supabase migrations are the only schema source of truth.
-- pnpm monorepo.
-- shadcn/ui.
-- financial events are authoritative.
-- snapshots are reconstructable.
-- all financial writes go through the backend.
-- Projection Engine is pure.
-- simulations have no side effects.
-- money uses integer minor units.
-- UUID v4.
-- Docker Compose is the reference deployment.
+- tasks or task progress;
+- standalone milestones/checkpoints or generic components;
+- pay periods, transfers, bank integrations, or shared goals;
+- snapshots as financial truth;
+- persistent simulations;
+- offline writes or app-level import/export;
+- AI, OAuth, native apps, push notifications, or public APIs.
 
-## Working rules
+Use Supabase migrations as the sole schema history, Drizzle for typed access, RLS plus backend
+authorization for isolation, integer minor units for money, explicit business dates, and pure domain
+engines. Keep dependencies flowing in the direction documented by the architecture.
 
-1. Work only on the requested milestone.
-2. Inspect the repository before changing files.
-3. Preserve existing behavior unless the milestone requires change.
-4. Add migrations, tests, docs, and UI states together.
-5. Never place authoritative business logic in React components.
-6. Never insert financial events directly from the frontend.
-7. Use transactions and idempotency for financial mutations.
-8. Keep domain packages free from React, Supabase, Drizzle, and HTTP dependencies.
-9. Use generated or shared contracts to prevent drift.
-10. Do not add speculative abstractions or dependencies.
+Before completion, run:
 
-## Validation required before completion
+```sh
+pnpm install
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+git diff --check
+```
 
-Run and report:
+Add milestone-specific validation and disclose anything that could not run. Preserve unrelated work.
+Do not commit, push, create a PR, or make external changes unless the user explicitly requests it.
 
-- install;
-- lint;
-- typecheck;
-- unit tests;
-- integration tests relevant to the milestone;
-- build;
-- `git diff --check`.
-
-If Docker or Supabase local services are unavailable, explain exactly which validations could not run and provide the commands to run them.
-
-## Deliverable format
-
-At the end, report:
-
-- summary;
-- files changed;
-- migrations;
-- tests added;
-- commands run and results;
-- unresolved risks;
-- next recommended milestone.
-
-Do not create or merge a PR unless explicitly requested.
+If a product rule is missing, do not invent a consequential behavior. Select only a reversible,
+minimal implementation detail; document it in the correct source. Stop when product and technical
+sources genuinely conflict.

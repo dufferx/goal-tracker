@@ -1,164 +1,77 @@
 # Goal Tracker — Milestones and Git Strategy
 
----
+**Status:** Active
+**Base branch:** `development`
+**Release branch:** `main`
 
-# 1. Branch model
+## Milestones
 
-Use a lightweight Git flow:
+| Milestone | Purpose | Suggested branch |
+|---|---|---|
+| D0 | Simplified product documentation reset | `docs/simplified-product-reset` |
+| M1 | Identity and cross-user isolation | `feat/identity-isolation` |
+| M2 | Goals and item planning | `feat/goals-items` |
+| M3 | Financial ledger and history | `feat/financial-ledger` |
+| M4 | Guidance and temporary simulation | `feat/guidance-simulation` |
+| M5 | Integrated product UX | `feat/product-ux` |
+| M6 | Self-hosted hardening and release | `chore/self-hosted-release` |
 
-```text
-main
-└── development
-    ├── feat/*
-    ├── refactor/*
-    ├── fix/*
-    ├── chore/*
-    └── docs/*
-```
+The detailed scope and exit criteria are in `GoalTracker_Implementation_Plan.md`.
 
-## Rules
+## Branch workflow
 
-- `main` contains production-ready releases only.
-- `development` is the integration branch.
-- all work begins from `development`;
-- pull requests target `development`;
-- releases merge `development` into `main`;
-- no direct commits to `main`;
-- keep branches milestone-scoped but small enough to review.
+1. Confirm the previous milestone passes its exit criteria on `development`.
+2. Update local `development` without discarding unrelated work.
+3. Create the milestone branch shown above or an equivalently scoped branch.
+4. Implement only that milestone.
+5. Validate the full repository plus milestone-specific tests.
+6. Review the diff against `development`.
+7. Commit intentionally and open a pull request to `development` only when explicitly requested.
+8. Merge only after required checks and review pass.
 
----
+`main` receives production-ready releases from `development`; feature work never targets `main`
+directly.
 
-# 2. Branch naming
-
-```text
-feat/<scope>
-refactor/<scope>
-fix/<scope>
-chore/<scope>
-docs/<scope>
-test/<scope>
-```
-
-Examples:
-
-```text
-feat/repository-foundation
-feat/auth-and-profiles
-feat/goals-core
-feat/planning-model
-feat/financial-engine
-feat/transfers-and-corrections
-feat/projection-engine
-feat/simulation-engine
-feat/activity-and-completion
-feat/offline-pwa
-feat/import-export-backup
-feat/ux-integration
-feat/release-hardening
-```
-
----
-
-# 3. Milestone branches
-
-| Milestone | Primary branch |
-|---|---|
-| M0 | `feat/repository-foundation` |
-| M1 | `feat/auth-and-profiles` |
-| M2 | `feat/goals-core` |
-| M3 | `feat/planning-model` |
-| M4 | `feat/financial-engine` |
-| M5 | `feat/transfers-and-corrections` |
-| M6 | `feat/projection-engine` |
-| M7 | `feat/simulation-engine` |
-| M8 | `feat/activity-and-completion` |
-| M9 | `feat/offline-pwa` |
-| M10 | `feat/import-export-backup` |
-| M11 | `feat/ux-integration` |
-| M12 | `feat/release-hardening` |
-
----
-
-# 4. Optional sub-branches
-
-When a milestone becomes too large, split it into narrow branches.
-
-Example for M4:
-
-```text
-feat/financial-schema
-feat/financial-deposits-withdrawals
-feat/financial-purchases-expenses
-feat/financial-snapshots
-test/financial-engine-cases
-```
-
-All target `development`.
-
----
-
-# 5. Commit conventions
+## Commit strategy
 
 Use Conventional Commits:
 
 ```text
-feat:
-fix:
-refactor:
-test:
-docs:
-chore:
-build:
-ci:
+docs(product): establish simplified goal model
+feat(goals): add fixed and item-derived planning
+feat(finance): add replay-safe financial ledger
+test(rls): prove cross-user isolation
+chore(release): pin self-hosted service versions
 ```
 
-Examples:
+Prefer small commits that leave the branch valid and represent one coherent change. Do not create
+artificial commits per file or mix unrelated cleanup with a milestone.
 
-```text
-feat(financial): add idempotent deposit use case
-fix(projection): handle open goals without plan
-test(rls): prevent cross-user goal access
-docs(self-hosting): add SMTP setup
-```
+## Schema changes
 
----
+- Each schema change is a forward Supabase migration in `supabase/migrations`.
+- Never edit a migration already used by another environment unless the repository is explicitly
+  reset before first release.
+- Drizzle mappings change in the same commit as their SQL migration.
+- Migration tests cover constraints, RLS, and expected rollback behavior.
+- Destructive migrations need backup and restoration notes.
 
-# 6. Pull request requirements
+## Pull-request requirements
 
-Every PR must include:
+A milestone PR targets `development` and describes:
 
-- scope summary;
-- affected milestone;
-- migrations;
-- test evidence;
-- screenshots for UI changes;
-- known limitations;
-- checklist confirming no business rules were duplicated.
+- user-visible scope and exclusions;
+- architecture or product decisions changed;
+- migration and deployment effects;
+- test commands and results;
+- screenshots for UI work;
+- follow-up risks that belong to a later milestone.
 
----
+No PR is created, published, merged, or retargeted without explicit user authorization.
 
-# 7. Release strategy
+## Releases
 
-Use semantic versioning.
-
-Suggested progression:
-
-```text
-0.1.0  M0-M2 foundation
-0.2.0  M3 planning
-0.3.0  M4-M5 financial core
-0.4.0  M6-M7 projections and simulations
-0.5.0  M8-M10 completion, offline, portability
-0.9.0  M11 design-complete release candidate
-1.0.0  M12 stable MVP
-```
-
----
-
-# 8. Tags and changelog
-
-- tag releases from `main`;
-- maintain `CHANGELOG.md`;
-- include migration notes;
-- include breaking environment changes;
-- document backup steps before upgrades.
+Use semantic versioning after M6 establishes the first deployable release. A release includes pinned
+container/application versions, migrations, operator notes, backup compatibility, and known
+limitations. Upgrades must review current Supabase and PostgreSQL breaking changes before changing
+pins.
