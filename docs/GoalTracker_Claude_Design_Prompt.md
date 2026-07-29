@@ -1,194 +1,284 @@
-# Goal Tracker — Product Design Brief
+# Claude Design Prompt — Goal Tracker
 
-**Status:** Approved direction for M5
-**Product:** Responsive web application, English-first
+You are the lead product designer and design engineer for Goal Tracker.
 
-Design a calm personal money-planning tool, not a project-management dashboard. The user should
-understand a goal in seconds: what it is for, how much is funded, how much remains available, what
-has been spent, what comes next, and whether the current plan is realistic.
+Design a coherent, interactive, responsive product experience for the application described in the
+two attached documents:
 
-## Experience principles
+1. `GoalTracker_Product_Requirements_Master.md`
+2. `GoalTracker_Architecture_Blueprint.md`
 
-- Favor one obvious primary action per screen.
-- Use everyday money language; keep accounting and architecture terminology out of the UI.
-- Show totals and their relationships before charts.
-- Explain every pace status in text; color is supplementary.
-- Reveal detail progressively. History and simulation should not crowd the everyday contribution
-  flow.
-- Make month-based planning feel month-based; do not show invented day precision.
-- Treat destructive or financially meaningful actions with explicit confirmation.
-- Optimize first for phone widths, then wider screens.
+Read both documents completely before designing. They are the source of truth for product behavior,
+terminology, scope, privacy, data relationships, and system boundaries.
 
-## Information architecture
+Do not reinterpret business rules, introduce features that are not present, or restore concepts
+that were explicitly removed. When a UI detail is not defined, make the simplest reasonable product
+decision and briefly document it.
 
-Primary navigation:
+## Objective
 
-- Goals
-- History, when viewed within a goal
-- Archived
-- Settings
+Create the complete user flow and structural design foundation that implementation agents can use
+throughout development.
 
-Authentication screens sit outside the application shell. Simulation is entered from a goal and
-returns to that goal; it is not a durable top-level object.
+This is not intended to be a low-fidelity wireframe exercise. Establish a recognizable visual brand
+and a polished product direction now, while keeping the experience simple enough to evolve during
+implementation.
 
-## Dashboard
+The result should feel:
 
-Show:
+- modern;
+- clean;
+- minimal;
+- calm and friendly;
+- visually pleasant;
+- trustworthy around money;
+- extremely easy to understand and use.
 
-- active goal cards;
-- totals grouped by currency, never combined across currencies;
-- goal name, target when valid, funded progress, available money, next dated item, and pace status
-  when calculable;
-- an intentional incomplete-setup state for item-derived goals without items;
-- clear create-goal action.
+Simplicity is the most important quality. Every element should earn its place.
 
-Avoid dense tables, task counters, global portfolio scores, and decorative charts without a direct
-decision they support.
+## Creative freedom
 
-## Goal detail
+You have broad freedom over:
 
-Use a clear hierarchy:
+- product navigation and information architecture;
+- page composition and hierarchy;
+- responsive behavior;
+- visual identity, color palette, typography, spacing, iconography, and motion;
+- how information is progressively disclosed;
+- whether a flow is presented as a page, sheet, drawer, dialog, inline editor, or another suitable
+  interaction;
+- the exact presentation of goal progress, guidance, items, history, and simulation;
+- microcopy, provided it remains faithful to the domain rules;
+- reusable UI patterns and the personality of the brand.
 
-1. goal identity and lifecycle;
-2. funded/target progress;
-3. available and spent money;
-4. guidance, explanation, and recommendation;
-5. primary contribution action;
-6. planned items;
-7. recent financial history;
-8. simulation entry.
+Do not merely restyle an ordinary finance dashboard. Create a cohesive identity that feels personal,
+focused, and useful without becoming decorative or complicated.
 
-For open goals without enough planning information, say why no pace is shown and offer the relevant
-next action: add a due month, final month, or preferred contribution. Do not label the user as
-behind when no required pace exists.
+You may reorganize or improve any suggested flow if your solution is simpler and still respects the
+attached requirements. The attached documents constrain product truth, not your creativity as a
+designer.
 
-## Money model in the interface
+## Product understanding
 
-Use these terms consistently:
+Goal Tracker is a personal, self-hosted goal and budget tracker. A deployment may contain a small
+number of users, but every user's information is private.
 
-- **Funded:** contributions minus withdrawals;
-- **Available:** funded money not yet spent;
-- **Spent:** purchases after undo;
-- **Target:** fixed budget or item-derived current total;
-- **Remaining:** target minus funded, never the cash currently available.
+The product helps a person:
 
-After a purchase, reinforce that funded progress stays intact while available money decreases. For
-an item-derived goal, show when actual price changed the target.
+- save toward a fixed financial target;
+- create a goal whose target is calculated from the prices of planned items;
+- contribute money once or twice per month;
+- understand funded, available, spent, target, and remaining amounts;
+- plan expenses with optional month-level deadlines;
+- purchase an item only when enough goal money is available;
+- see whether a dated goal is ahead, on track, at risk, or behind;
+- explore a temporary hypothetical contribution plan;
+- review and safely correct real financial history.
 
-## Goal and item forms
+The two primary example journeys are:
 
-Goal creation should be a short guided form:
+- **Japan trip:** a fixed target with a final month and earlier expenses such as flights and hotel;
+- **Home gym:** an open-ended, item-derived target where equipment is purchased over time and actual
+  prices may differ from estimates.
 
-1. name and currency;
-2. fixed amount or “calculated from items”;
-3. start month and optional final month;
-4. one or two planned contributions per month;
-5. optional preferred contribution for open goals.
+Use realistic content from these journeys throughout the prototype. The product interface is
+English-first.
 
-Items belong inside goals and use name, expected price, and optional due month.
+## Non-negotiable product rules
 
-For a fixed goal:
+The experience must accurately communicate the rules in the attached requirements, including:
 
-- percentage entry may be offered as a convenience beside money entry;
-- show the converted money amount before saving;
-- if item totals exceed the budget, present two explicit choices: keep the goal target or increase
-  it to cover the items.
+- a goal is the primary object;
+- items are optional and may exist in either target mode;
+- an item's optional due month supplies a funding deadline without a separate milestone entity;
+- an item-derived target uses actual price for purchased items and expected price for pending items;
+- a fixed target does not change silently when item amounts exceed it;
+- contributions increase funded and available money;
+- withdrawals decrease funded and available money;
+- purchases move money from available to spent without erasing funded progress;
+- a purchase is blocked when available money is insufficient;
+- purchase undo is complete, not partial;
+- real transactions may be today or in the past, never in the future;
+- historical edits may be rejected when they would invalidate later financial history;
+- one or two contributions per month is a planning frequency, not a payday schedule;
+- open goals without enough planning information intentionally have no pace status;
+- `Fully funded` is separate from pace status and never archives a goal automatically;
+- simulations are temporary, contribution-only, and never change real data or simulate purchases;
+- the simulator reports when items become affordable;
+- archived goals remain under explicit user control;
+- currencies from different goals are never added together.
 
-For an item-derived goal, explain that adding or changing items changes the target.
+Use the exact product definitions of Funded, Available, Spent, Target, and Remaining. The interface
+must make their differences understandable without requiring accounting knowledge.
 
-## Financial flows
+Do not design tasks, standalone milestones or checkpoints, generic project components, transfers,
+bank accounts, shared goals, administration dashboards, saved simulations, offline workflows, AI,
+or any other excluded feature.
 
-Contribution should be the fastest flow in the product. Default the date to today and allow a past
-date.
+## Technology and component direction
 
-Withdrawals, edits, deletes, purchases, and undo need enough context to prevent mistakes:
+Design for a React web application using Tailwind CSS and shadcn/ui.
 
-- show resulting amounts when helpful;
-- block purchase with a plain explanation when available money is insufficient;
-- explain why purchased items cannot be deleted before undo;
-- warn that retroactive changes can be rejected if they make past balances invalid;
-- require confirmation for delete, purchase undo, archive, and permanent goal deletion.
+Use shadcn/ui primitives as the foundation rather than inventing a parallel component system.
+Choose components according to the interaction, including where useful:
 
-History is one chronological financial list with compact filters. Distinguish type with icon, label,
-and sign—not color alone. Reversals must visibly reference the purchase they undo.
+- `Sheet` for fast contextual actions and compact forms;
+- `Drawer` for comfortable mobile interactions;
+- `Dialog` and `AlertDialog` for decisions and destructive confirmation;
+- `Card`, `Progress`, `Badge`, `Tabs`, `Tooltip`, `Popover`, and `DropdownMenu`;
+- shadcn form controls, calendars/month selectors, inputs, selects, tables, and toasts;
+- `Skeleton`, `Alert`, and empty-state patterns for application feedback.
 
-## Guidance
+This is guidance, not a requirement to use every component. Avoid component variety for its own
+sake. Prefer a small, consistent set of patterns that implementation agents can reuse.
 
-Pace states are:
+Use Lucide icons or another restrained icon set compatible with shadcn. Do not rely on icons or color
+alone to communicate meaning.
 
-- Ahead
-- On track
-- At risk
-- Behind
+## Required end-to-end coverage
 
-Fully funded is a separate completion message. Each status block includes:
+Design a connected experience rather than unrelated screen mockups. At minimum, the prototype must
+allow a reviewer to follow these flows.
 
-- the current state;
-- one-sentence reason;
-- recommended monthly amount;
-- recommended amount per contribution for the selected one/two frequency;
-- relevant next deadline or estimate.
+### Entry and account
 
-Use encouraging, factual wording. Avoid shame, gamification pressure, confetti by default, or false
-precision.
+- sign in;
+- sign up when registration is enabled;
+- registration-disabled state;
+- password-recovery availability and unavailable/manual-support state;
+- authenticated application shell;
+- profile and default-currency settings.
 
-## Simulator
+### First goal
 
-The simulator is explicitly labeled temporary and hypothetical.
+- empty dashboard;
+- create a fixed or item-derived goal;
+- choose currency, start month, optional final month, one/two contribution frequency, and optional
+  preferred amount per contribution;
+- understand what each target mode means before choosing;
+- arrive at a useful goal-detail view.
 
-- Support one to three sequential phases in a compact editor.
-- Each phase has a duration in months and an amount per contribution. Make it clear that the goal's
-  frequency applies that amount once or twice per month.
-- Let the final phase optionally continue until the next deadline or target.
-- Show duration, sequence, and amount validation inline.
-- Report a month-by-month trajectory, estimated target month when possible, and the month each item
-  becomes affordable.
-- Say that affordability does not mean the item was bought and does not change real available money.
-- Provide close/reset, not save. Refreshing or leaving may discard the report.
+### Japan trip
 
-A small table or simple line visualization is appropriate only if it improves month-to-month
-comparison. Always provide the exact values in accessible text.
+- see a populated fixed goal;
+- add flights and hotel as items;
+- give flights a due month;
+- understand the cumulative funding need and current guidance;
+- handle an item total that exceeds the fixed budget by explicitly keeping or increasing the target;
+- add contributions;
+- understand funded, available, spent, target, and remaining;
+- purchase flights when affordable;
+- see the effect of a lower or higher actual purchase price;
+- review, edit, and delete eligible financial history;
+- undo a purchase.
 
-## States and accessibility
+### Home gym
 
-Every screen must define:
+- create an item-derived goal with no final month;
+- experience the intentional incomplete state before the first item exists;
+- add and edit equipment;
+- see the target become the sum of item prices;
+- add contributions;
+- see which item is currently affordable;
+- purchase an item and see the target use its actual cost;
+- understand the no-pace state when there is no deadline or preferred contribution;
+- add a preferred amount and see an estimate become available.
 
-- initial loading;
-- empty;
-- recoverable error;
-- permission/session error;
-- successful mutation feedback;
-- disabled/submitting;
-- connection error state.
+### Temporary simulation
 
-Meet WCAG 2.2 AA intent: semantic landmarks, correct labels, keyboard access, visible focus, dialog
-focus management, sufficient contrast, reduced motion, large touch targets, and screen-reader
-announcements for mutation results. Preserve entered form values after recoverable errors.
+- open simulation from a goal;
+- build one to three sequential phases;
+- enter each phase as a duration in months and an amount per contribution;
+- understand how the one/two frequency affects simulated monthly funding;
+- optionally continue the final phase until the next deadline or target;
+- compare the hypothetical result with the current plan;
+- see the month in which each pending item becomes affordable;
+- understand clearly that no item was purchased and no real data changed;
+- reset or leave without saving.
 
-## Visual direction
+### Lifecycle and recovery
 
-Use a restrained, warm-neutral system with one confident accent and a small semantic palette.
-Typography and spacing should carry hierarchy. Cards may group goals, but avoid nesting every
-section in another card. Use monospaced or tabular numerals for changing money values when it aids
-comparison. Motion should clarify state changes and remain optional.
+- view active and archived goals;
+- archive, restore, and permanently delete with appropriate confirmation;
+- experience insufficient funds, invalid historical correction, locked currency, network failure,
+  recoverable form error, and expired session.
 
-Do not design UI for tasks, checkpoints as separate records, transfers, bank accounts, shared goals,
-admin dashboards, saved simulations, or AI.
+## UX expectations
 
-## Required design coverage
+- Prioritize one clear primary action in each context.
+- Make adding a contribution especially fast.
+- Use progressive disclosure instead of displaying every detail at once.
+- Keep goal detail useful at a glance without hiding important money distinctions.
+- Prefer plain language over financial or technical terminology.
+- Use confirmation proportional to risk; do not interrupt harmless actions unnecessarily.
+- Preserve user input after recoverable errors.
+- Provide purposeful loading, empty, success, error, disabled, and submitting states.
+- Never retry a financial submission automatically. If its result cannot be confirmed, show an
+  indeterminate-result state and refresh the affected goal history before enabling another attempt.
+- Make unavailable actions explain why they are unavailable.
+- Avoid excessive dashboards, nested cards, permanent side panels, charts, tabs, and metrics.
+- Use charts only when they make a decision easier; always provide exact accessible values.
+- Avoid gamification, shame-based language, visual noise, and false precision.
 
-Provide responsive designs for:
+## Responsive and accessibility requirements
 
-- sign in, registration-enabled and registration-disabled states, recovery;
-- empty and populated goal dashboard;
-- fixed and item-derived goal creation;
-- goal detail for dated, open, incomplete, and fully funded states;
-- item add/edit, over-budget decision, purchase, and undo;
-- contribution/withdrawal add and correction;
-- history filters;
-- temporary simulator;
-- archive/restore/permanent delete;
-- profile/settings and connection-error state.
+Design mobile-first, but create an intentional desktop experience rather than merely stretching the
+mobile layout.
 
-Use the Japan trip and home-gym acceptance examples from the product requirements as the primary
-prototype journeys.
+Meet WCAG 2.2 AA intent:
+
+- semantic structure and meaningful labels;
+- complete keyboard navigation;
+- strong visible focus;
+- correct sheet, drawer, dialog, and alert-dialog focus behavior;
+- sufficient contrast;
+- touch-friendly target sizes;
+- reduced-motion support;
+- screen-reader-friendly status and mutation feedback;
+- no information communicated only by color, position, or animation.
+
+Show how major layouts and contextual actions adapt between representative mobile and desktop
+widths.
+
+## Expected deliverables
+
+Produce:
+
+1. a coherent interactive prototype using realistic Goal Tracker data;
+2. a concise information-architecture map;
+3. the two complete reference journeys and their supporting states;
+4. the simulator flow;
+5. a visual brand foundation:
+   - color and semantic palette;
+   - typography;
+   - spacing and radius approach;
+   - icon and illustration direction, if any;
+   - motion principles;
+6. a small reusable component and interaction inventory based on shadcn/ui;
+7. responsive examples for the main surfaces;
+8. loading, empty, success, validation, error, disabled, and destructive states;
+9. a short rationale explaining the most important UX decisions and any assumptions.
+
+The prototype should be specific enough that implementation agents can use it as the visual and
+interaction reference for later milestones.
+
+Do not spend the work primarily explaining what you would design. Create the experience and then
+briefly explain it.
+
+## Final quality bar
+
+Before finishing, verify:
+
+- every designed action exists in the attached product requirements;
+- the two reference journeys can be completed without external explanation;
+- the hierarchy makes the five money concepts understandable;
+- temporary simulation cannot be confused with real activity;
+- no excluded feature appears in navigation or secondary actions;
+- the same visual language is applied consistently across all flows;
+- mobile and desktop interactions are both credible;
+- the design feels distinctive, contemporary, simple, and friendly;
+- implementation can reuse a small number of shadcn-based patterns rather than recreating each
+  screen independently.
+
+When visual ambition conflicts with clarity, choose clarity. When additional functionality
+conflicts with simplicity, choose simplicity.

@@ -108,6 +108,11 @@ sequenceDiagram
 
 An invalid historical prefix rolls back the whole command.
 
+The web sends each financial command once and disables its form while pending. It does not
+automatically replay a command whose response is lost. When the result is unknown, it reloads the
+goal detail and ordered history before enabling another submission. This reconciliation uses
+committed ledger state and requires no offline queue or idempotency storage.
+
 ### Purchase and undo
 
 The API locks the goal, loads the item and full ledger, verifies ownership and state, then asks the

@@ -156,8 +156,13 @@ increase or decrease.
 - IDs are UUID v4 values.
 - Every mutation is authorized and executed by the backend; the browser never inserts ledger rows
   directly.
-- Retry protection relies on committed transaction state plus disabled/submitting UI controls. The
-  MVP does not introduce an offline or idempotency subsystem.
+- A financial submission produces one request. Its controls remain disabled while pending and the
+  client never retries it automatically.
+- If the connection fails before success can be confirmed, the app reports that the result is
+  unknown, preserves the form input, and refreshes the goal history before another submission is
+  allowed. This distinguishes an unconfirmed commit from a known rejection without introducing
+  duplicate contributions.
+- The MVP has no offline writes, service worker, sync queue, idempotency keys, or idempotency table.
 
 ### 5.2 Editing and correcting
 

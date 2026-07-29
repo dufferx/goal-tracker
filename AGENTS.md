@@ -9,10 +9,12 @@ Before implementing a milestone, read in this order:
 1. `docs/GoalTracker_Product_Requirements_Master.md` — authoritative product behavior.
 2. `docs/GoalTracker_Technical_Architecture.md` — authoritative technical decisions.
 3. `docs/GoalTracker_Architecture_Blueprint.md` — boundaries and dependency direction.
-4. `docs/GoalTracker_Implementation_Plan.md` — milestone scope and exit criteria.
-5. `docs/GoalTracker_Milestones_and_Git_Strategy.md` — branches, commits, PRs, releases.
-6. `docs/GoalTracker_Codex_Milestone_Prompts.md` — execution checklists.
-7. `docs/GoalTracker_Claude_Design_Prompt.md` — UI direction, primarily for M5.
+4. `docs/design/README.md` — approved visual references and milestone ownership.
+5. `docs/design/GoalTracker_Design_System.md` — executable visual and interaction rules.
+6. `docs/GoalTracker_Implementation_Plan.md` — milestone scope and exit criteria.
+7. `docs/GoalTracker_Milestones_and_Git_Strategy.md` — branches, commits, PRs, releases.
+8. `docs/GoalTracker_Codex_Milestone_Prompts.md` — execution checklists.
+9. `docs/GoalTracker_Claude_Design_Prompt.md` — original design direction and quality bar.
 
 `docs/GoalTracker_Codex_Master_Prompt.md` summarizes standing implementation rules.
 `feature-requirements.md` and `implementation-plan.md` are retained discovery records; the files
@@ -23,7 +25,7 @@ technical architecture governs implementation. Surface genuine conflicts before 
 
 ## Delivery model
 
-- Implement D0, then M1 through M6 sequentially.
+- Implement D0, D1, then M1 through M6 sequentially.
 - Work only within the milestone requested by the user.
 - Do not begin a later milestone until the prior exit criteria pass.
 - Keep changes narrow and avoid future features, speculative abstractions, and unused dependencies.
@@ -103,8 +105,10 @@ ui       -> no authoritative domain logic
 - Currency becomes immutable after the first financial transaction.
 - Projection and simulation engines are pure, deterministic, and infrastructure-free.
 - Simulation never persists, purchases items, or alters real state.
-- Retry protection uses committed transaction state and disabled/submitting UI controls; do not add
-  an offline or idempotency subsystem.
+- A financial submission produces one request. Disable its controls while pending and never
+  automatically retry an ambiguous financial response. If confirmation is lost, refresh the goal
+  history before allowing another attempt. Do not add offline writes, a service worker, a sync
+  queue, idempotency keys, or an idempotency table.
 - Each authoritative business rule exists in exactly one module.
 
 ## Database and security
@@ -128,6 +132,13 @@ ui       -> no authoritative domain logic
 - Calculate current derived values on demand; persist only historical facts.
 - Update operational and behavior documentation with the implementation.
 - Meet responsive and accessibility requirements and include UI screenshots in PR handoffs.
+- Before UI work, read the active milestone's mapped captures in `docs/design/README.md` and the
+  shared design-system rules. Match them closely using shared Graphite tokens.
+- Use the configured shadcn/ui registry for generic primitives. Do not hand-roll replacements for
+  buttons, inputs, cards, dialogs, drawers, sheets, selects, tables, alerts, badges, skeletons, or
+  tooltips. Add a custom component only when it is an approved Goal Tracker domain composite.
+- Treat visual references as implementation constraints, not permission to copy annotation text or
+  move authoritative business logic into presentational components.
 
 ## Testing
 

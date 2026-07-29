@@ -12,20 +12,31 @@ These prompts are execution checklists, not independent sources of product truth
 > milestone, architecture, and design documents. Do not change code, dependencies, or migrations.
 > Validate links, requirement coverage, working-tree scope, and `git diff --check`.
 
+## D1 — Design implementation baseline
+
+> Work only on D1 after D0 passes. Capture and version the approved milestone-scoped design
+> references, document Graphite v2 completely, apply its shared semantic tokens, and link each
+> UI-producing milestone to its reference images. Use configured shadcn/ui primitives for generic
+> controls and keep custom components limited to approved domain composites. Do not implement
+> product behavior, migrations, or speculative components. Validate images, links, repository
+> checks, and artifact provenance.
+
 ## M1 — Identity and isolation
 
 > Work only on M1 from `development`. Implement Supabase email/password session flows, profiles,
 > deployment-controlled signup, recovery behavior, API token verification, owner-scoped
 > repositories, and RLS. Prove two users cannot access one another's data through the API or direct
 > authenticated database access. Do not implement goal planning or finance beyond the minimal
-> ownership fixture needed for isolation tests.
+> ownership fixture needed for isolation tests. Follow the M1 captures and shared design system;
+> do not redesign the mapped surfaces.
 
 ## M2 — Goals and items
 
 > Work only on M2 after M1 passes. Implement fixed and item-derived goals, month-level planning, one
 > or two planned contributions per month, optional preferred contribution, optional items and due
 > months, target derivation, explicit fixed-budget overage handling, archives, and permanent delete.
-> Do not add financial ledger, status, or simulation behavior.
+> Do not add financial ledger, status, or simulation behavior. Follow the M2 captures and shared
+> design system; use shadcn/ui primitives instead of replacement controls.
 
 ## M3 — Financial ledger
 
@@ -33,7 +44,10 @@ These prompts are execution checklists, not independent sources of product truth
 > financial mutation path for contributions, withdrawals, purchases, full undo, edits,
 > and deletes. Replay the complete ordered history and reject every negative prefix. Derive funded,
 > spent, available, item purchase state, actual price, target, and history. Add concurrency,
-> transaction, RLS, API, and UI coverage. Do not implement projections or simulation.
+> transaction, RLS, API, and UI coverage. Disable duplicate submissions and reconcile an ambiguous
+> network result by refreshing history; do not add automatic mutation retries, offline behavior, or
+> idempotency infrastructure. Do not implement projections or simulation. Follow the M3 captures
+> and shared design system.
 
 ## M4 — Guidance and simulation
 
@@ -42,14 +56,16 @@ These prompts are execution checklists, not independent sources of product truth
 > through one public domain entry point. Add a side-effect-free simulator with at most three
 > sequential phases whose amount is per contribution, plus informational item-affordability
 > reporting. Prove it never writes data or
-> assumes purchases.
+> assumes purchases. Follow the M4 captures and shared design system.
 
 ## M5 — Product UX
 
-> Work only on M5 after M4 passes. Integrate a calm mobile-first experience for authentication,
+> Work only on M5 after M4 passes. Integrate and audit the already styled mobile-first experience for
+> authentication,
 > dashboard, goal detail, item and transaction flows, history, simulation, archives, and settings.
 > Complete loading, empty, error, success, disabled, confirmation, responsive, keyboard,
-> screen-reader, contrast, and connection-error states. Do not add new product features.
+> screen-reader, contrast, and connection-error states. Correct unexplained drift against the full
+> reference set; do not redesign mapped surfaces or add new product features.
 
 ## M6 — Self-hosted release
 

@@ -19,18 +19,19 @@ simulations in the MVP.
 
 ## Current state
 
-The repository contains the initial monorepo foundation and the D0 simplified-product documentation
-reset. Feature implementation proceeds sequentially:
+The repository contains the initial monorepo foundation, the D0 simplified-product documentation
+reset, and the D1 design implementation baseline. Feature implementation proceeds sequentially:
 
-| Milestone | Scope                                    |
-| --------- | ---------------------------------------- |
-| D0        | Canonical product and architecture reset |
-| M1        | Identity and user isolation              |
-| M2        | Goals and item planning                  |
-| M3        | Financial ledger and history             |
-| M4        | Guidance and temporary simulation        |
-| M5        | Integrated accessible web experience     |
-| M6        | Self-hosted hardening and release        |
+| Milestone | Scope                                          |
+| --------- | ---------------------------------------------- |
+| D0        | Canonical product and architecture reset       |
+| D1        | Design references and executable visual tokens |
+| M1        | Identity and user isolation                    |
+| M2        | Goals and item planning                        |
+| M3        | Financial ledger and history                   |
+| M4        | Guidance and temporary simulation              |
+| M5        | Integrated accessible web experience           |
+| M6        | Self-hosted hardening and release              |
 
 Do not treat a planned milestone as an implemented feature.
 
@@ -59,7 +60,9 @@ Read in this order:
 3. [Architecture blueprint](docs/GoalTracker_Architecture_Blueprint.md)
 4. [Implementation plan](docs/GoalTracker_Implementation_Plan.md)
 5. [Milestones and Git strategy](docs/GoalTracker_Milestones_and_Git_Strategy.md)
-6. [Contributor guide](AGENTS.md)
+6. [Design reference index](docs/design/README.md)
+7. [Design system](docs/design/GoalTracker_Design_System.md)
+8. [Contributor guide](AGENTS.md)
 
 The root `feature-requirements.md` and `implementation-plan.md` preserve the approved discovery
 conversation and detailed requirement mapping. Canonical documents under `docs/` govern execution.

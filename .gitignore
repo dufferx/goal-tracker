@@ -7,6 +7,9 @@ coverage/
 *.log
 *.tsbuildinfo
 
+# Root-level design prototypes and their offline copies
+/GoalTracker*.html
+
 # Vite
 apps/web/.vite/
 
