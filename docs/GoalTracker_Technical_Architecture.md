@@ -212,8 +212,14 @@ React pages orchestrate API state and render domain results. They contain no aut
 or projection formulas. Server state uses one query/mutation layer with cache invalidation scoped to
 the affected goal.
 
-Offline behavior and service-worker caching are outside the MVP. Network-dependent actions show a
-clear connection error and preserve recoverable form input.
+Offline behavior, service-worker caching, mutation queues, and request idempotency are outside the
+MVP. A financial form sends one request and disables resubmission while it is pending. The query
+layer must not automatically retry financial mutations.
+
+A known server rejection preserves recoverable form input and may be retried after correction. If a
+network failure leaves the commit result unknown, the web app shows an indeterminate-result error,
+refreshes the affected goal and history, and enables another submission only after reconciliation.
+No client-generated key, replay queue, or idempotency persistence is introduced.
 
 ## 9. Self-hosting and operations
 

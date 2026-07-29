@@ -426,8 +426,9 @@ Exit criteria:
 - financial history is authoritative and reconstructs every displayed total;
 - purchases cannot consume unavailable money;
 - corrections cannot invalidate later history;
-- retry protection relies on committed transaction state and UI submission locking, without adding
-  an offline/idempotency subsystem.
+- each financial form sends one request and disables while pending;
+- an ambiguous network result is reconciled by refreshing goal history before another submission;
+- no automatic financial retry, offline queue, or idempotency subsystem is added.
 
 ### M4 — Guidance and temporary simulation
 

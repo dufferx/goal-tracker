@@ -2,7 +2,7 @@
 
 **Status:** Approved
 **Last updated:** 2026-07-29
-**Sequence:** D0, then M1 through M6 without overlap
+**Sequence:** D0, D1, then M1 through M6 without overlap
 
 This is the canonical delivery plan. `implementation-plan.md` at the repository root is the
 discovery-era detailed planning record; this document governs execution.
@@ -44,6 +44,41 @@ feature implementation.
 - Markdown/source whitespace passes `git diff --check`;
 - repository validation is attempted and unavailable tooling is reported.
 
+## D1 — Design implementation baseline
+
+**Goal:** Make the approved Graphite v2 design a durable, executable implementation constraint
+before feature UI work begins.
+
+**Branch:** `docs/design-implementation-baseline`
+
+### Changes
+
+- capture milestone-scoped PNG references from the approved local design artifact;
+- record artifact provenance, screen ownership, and responsive dimensions;
+- document Graphite v2 tokens, typography, surfaces, interaction patterns, copy, accessibility, and
+  responsive behavior;
+- apply shared Graphite tokens in `packages/ui/src/styles/globals.css`;
+- require configured shadcn/ui primitives before generic custom controls;
+- integrate visual references and conformance checks into M1–M6.
+
+### References
+
+- [D1 requirements](GoalTracker_Design_Baseline_Requirements.md)
+- [D1 implementation plan](GoalTracker_Design_Baseline_Implementation_Plan.md)
+- [Design reference index](design/README.md)
+- [Graphite v2 design system](design/GoalTracker_Design_System.md)
+
+### Exit criteria
+
+- every UI-producing milestone links to its primary visual references;
+- committed screenshots match the recorded artifact checksum and have stable filenames;
+- shared CSS exposes the documented Graphite semantic tokens;
+- generic controls are assigned to shadcn/ui primitives and custom composites have a closed
+  allowlist;
+- design references distinguish product UI from prototype annotations;
+- no product feature, migration, or speculative component is implemented;
+- full repository checks and image/link validation pass.
+
 ## M1 — Identity and user isolation
 
 **Goal:** Establish private multi-user ownership and deployment-aware email/password authentication.
@@ -67,6 +102,14 @@ feature implementation.
 - profile/default-currency setup;
 - protected routing with loading and expired-session handling.
 
+### Design references
+
+- [Sign in](design/reference/m1/auth-sign-in.png)
+- [Create account](design/reference/m1/auth-create-account.png)
+- [Registration disabled](design/reference/m1/auth-registration-disabled.png)
+- [Password recovery](design/reference/m1/auth-password-recovery.png)
+- [Account settings](design/reference/m1/account-settings.png)
+
 ### Tests
 
 - migration and constraints;
@@ -78,7 +121,8 @@ feature implementation.
 ### Exit criteria
 
 Two users can authenticate on the same deployment and cannot read or mutate one another's data
-through the API or RLS.
+through the API or RLS. Implemented surfaces conform to the mapped references and shared design
+system, with any accessibility-driven deviation documented.
 
 ## M2 — Goals and item planning
 
@@ -103,6 +147,19 @@ through the API or RLS.
   preferred amount;
 - fixed-goal percentage helper that stores the converted money value.
 
+### Design references
+
+- [Welcome](design/reference/m2/onboarding-welcome.png)
+- [Create fixed goal](design/reference/m2/goal-create-fixed.png)
+- [Create item-derived goal](design/reference/m2/goal-create-item-derived.png)
+- [Incomplete item-derived setup](design/reference/m2/goal-incomplete-setup.png)
+- [Active dashboard](design/reference/m2/dashboard-active.png)
+- [Dashboard states](design/reference/m2/dashboard-states.png)
+- [Goal items](design/reference/m2/goal-items.png)
+- [Goal settings](design/reference/m2/goal-settings.png)
+- [Planning decisions](design/reference/m2/planning-decisions.png)
+- [Goal lifecycle](design/reference/m2/goal-lifecycle.png)
+
 ### Tests
 
 - target calculations and edge cases;
@@ -115,6 +172,7 @@ through the API or RLS.
 
 The Japan and empty/home-gym plans can be represented without tasks, checkpoints, or generic
 components. Item-derived goals calculate their target or report incomplete setup correctly.
+Implemented surfaces conform to the mapped references and shared design system.
 
 ## M3 — Financial ledger and history
 
@@ -127,7 +185,8 @@ components. Item-derived goals calculate their target or report incomplete setup
 - create `financial_transactions`, constraints, indexes, and RLS;
 - implement deterministic ledger replay and target integration;
 - implement contribution, withdrawal, purchase, full undo, edit, and delete rules;
-- implement currency locking and submission/retry protection without an idempotency subsystem;
+- implement currency locking, pending-submit locking, and explicit reconciliation after an
+  ambiguous network result, without automatic mutation retries or an idempotency subsystem;
 - serialize money safely at JSON boundaries.
 
 ### API
@@ -142,21 +201,35 @@ components. Item-derived goals calculate their target or report incomplete setup
 - add/edit/delete contribution and withdrawal;
 - purchase item and undo purchase with confirmation;
 - summary for funded, spent, available, target, and remaining;
-- unified financial history and correction states.
+- unified financial history and correction states;
+- disable financial forms while pending; on an unknown network result, refresh goal history before
+  enabling another submission.
+
+### Design references
+
+- [Goal financial detail](design/reference/m3/goal-financial-detail.png)
+- [Financial history](design/reference/m3/financial-history.png)
+- [Add contribution](design/reference/m3/add-contribution.png)
+- [Contribution result and withdrawal](design/reference/m3/contribution-result-withdrawal.png)
+- [Purchase and undo](design/reference/m3/purchase-undo.png)
+- [Transaction correction](design/reference/m3/transaction-correction.png)
 
 ### Tests
 
 - table-driven replay including every invalid negative prefix;
 - purchase affordability, actual-price target changes, duplicate purchase, undo, and purchased-item
   deletion block;
-- concurrent and repeated commands;
-- database rollback, locking, retry behavior, and RLS;
+- concurrent commands and double-submit prevention;
+- database rollback, locking, ambiguous-result reconciliation, and RLS;
 - API and web happy/error paths.
 
 ### Exit criteria
 
-Every financial write passes through one engine and transaction path. Retries are safe, retroactive
-changes cannot corrupt history, and cross-user or concurrent commands cannot double-spend.
+Every financial write passes through one engine and transaction path. The client does not
+automatically retry financial mutations; an unknown result is reconciled from history before the
+user can try again. Retroactive changes cannot corrupt history, and cross-user or concurrent
+commands cannot double-spend. Implemented surfaces conform to the mapped references and shared
+design system.
 
 ## M4 — Guidance and temporary simulation
 
@@ -182,6 +255,12 @@ changes cannot corrupt history, and cross-user or concurrent commands cannot dou
 - build a temporary simulator with phase editing, validation, monthly report, target estimate, and
   item-affordability timeline.
 
+### Design references
+
+- [Guidance states](design/reference/m4/guidance-states.png)
+- [Planning timeline](design/reference/m3/goal-financial-detail.png)
+- [Temporary simulator](design/reference/m4/simulator.png)
+
 ### Tests
 
 - month boundaries, past due obligations, overlapping obligations, frequency division, tolerance,
@@ -192,20 +271,30 @@ changes cannot corrupt history, and cross-user or concurrent commands cannot dou
 ### Exit criteria
 
 Both reference goals produce deterministic, understandable guidance, and simulation reports never
-change real state or pretend affordable items were purchased.
+change real state or pretend affordable items were purchased. Implemented surfaces conform to the
+mapped references and shared design system.
 
 ## M5 — Product UX integration
 
-**Goal:** Turn the functional slices into one calm, accessible, mobile-first product.
+**Goal:** Integrate and audit the already styled functional slices as one calm, accessible,
+mobile-first product without redesigning them.
 
 **Suggested branch:** `feat/product-ux`
 
 ### Changes
 
 - align navigation, dashboard, goal detail, forms, history, simulator, archives, and settings;
+- correct visual drift from the milestone references without changing approved information
+  architecture;
 - implement consistent currency, date, status, toast, dialog, skeleton, and error patterns;
 - preserve form input across recoverable errors;
 - complete keyboard, screen-reader, focus, contrast, reduced-motion, and responsive behavior.
+
+### Design references
+
+- [Complete reference index](design/README.md)
+- [Desktop dashboard](design/reference/m5/desktop-dashboard.png)
+- [Desktop goal detail](design/reference/m5/desktop-goal-detail.png)
 
 ### Tests
 
@@ -217,7 +306,8 @@ change real state or pretend affordable items were purchased.
 ### Exit criteria
 
 The product is usable without knowledge of its data model, status is never color-only, destructive
-actions are explicit, and critical journeys work on mobile and desktop.
+actions are explicit, and critical journeys work on mobile and desktop. Visual review shows no
+unexplained divergence from the complete reference set.
 
 ## M6 — Hardening and self-hosted release
 
@@ -234,6 +324,12 @@ actions are explicit, and critical journeys work on mobile and desktop.
 - dependency, image, migration, and security review;
 - release notes and operator checklist.
 
+### Design references
+
+- [Registration capability](design/reference/m1/auth-registration-disabled.png)
+- [Password recovery capability](design/reference/m1/auth-password-recovery.png)
+- [Deployment information](design/reference/m6/deployment-information.png)
+
 ### Tests
 
 - clean-machine installation and smoke test;
@@ -244,7 +340,8 @@ actions are explicit, and critical journeys work on mobile and desktop.
 ### Exit criteria
 
 A new operator can deploy from documented instructions, create isolated users, restore a backup, and
-complete both reference journeys without unpublished knowledge.
+complete both reference journeys without unpublished knowledge. Deployment-dependent UI conforms to
+the mapped references.
 
 ## Requirement coverage
 

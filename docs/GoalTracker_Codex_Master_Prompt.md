@@ -21,7 +21,7 @@ mutation passes through one backend service, an explicit transaction, goal lock,
 replay. Never put authoritative rules in React or write financial rows from the
 browser.
 
-Implement only the active milestone, sequentially from D0 through M6. Choose the simplest
+Implement only the active milestone, sequentially from D0 through D1 and M1–M6. Choose the simplest
 implementation consistent with the canonical documents. Do not introduce:
 
 - tasks or task progress;
@@ -29,12 +29,20 @@ implementation consistent with the canonical documents. Do not introduce:
 - pay periods, transfers, bank integrations, or shared goals;
 - snapshots as financial truth;
 - persistent simulations;
-- offline writes or app-level import/export;
+- offline writes, service workers, mutation queues, request idempotency, or automatic financial
+  mutation retries;
+- app-level import/export;
 - AI, OAuth, native apps, push notifications, or public APIs.
 
 Use Supabase migrations as the sole schema history, Drizzle for typed access, RLS plus backend
 authorization for isolation, integer minor units for money, explicit business dates, and pure domain
 engines. Keep dependencies flowing in the direction documented by the architecture.
+
+For every UI change, read `docs/design/README.md`, the mapped milestone captures, and
+`docs/design/GoalTracker_Design_System.md`. Reproduce the approved Graphite structure closely with
+shared tokens. Use configured shadcn/ui registry primitives for generic controls; do not invent
+parallel buttons, inputs, cards, sheets, drawers, dialogs, selects, tables, alerts, or skeletons.
+Custom UI is limited to the documented Goal Tracker domain composites.
 
 Before completion, run:
 

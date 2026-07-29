@@ -9,6 +9,7 @@
 | Milestone | Purpose | Suggested branch |
 |---|---|---|
 | D0 | Simplified product documentation reset | `docs/simplified-product-reset` |
+| D1 | Design implementation baseline | `docs/design-implementation-baseline` |
 | M1 | Identity and cross-user isolation | `feat/identity-isolation` |
 | M2 | Goals and item planning | `feat/goals-items` |
 | M3 | Financial ledger and history | `feat/financial-ledger` |
