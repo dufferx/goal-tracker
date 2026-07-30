@@ -8,8 +8,11 @@ Before acting, read in order:
 2. `docs/GoalTracker_Product_Requirements_Master.md`;
 3. `docs/GoalTracker_Technical_Architecture.md`;
 4. `docs/GoalTracker_Architecture_Blueprint.md`;
-5. `docs/GoalTracker_Implementation_Plan.md`;
-6. the requested milestone checklist.
+5. `DESIGN.md` for user-facing work;
+6. `docs/design/README.md` and the active milestone's mapped captures for user-facing work;
+7. `docs/design/GoalTracker_Design_System.md` for user-facing work;
+8. `docs/GoalTracker_Implementation_Plan.md`;
+9. the requested milestone checklist.
 
 The product has one primary aggregate: a private goal. A goal may have optional purchasable items.
 It has either a fixed target or a target derived from expected and actual item prices. An item's
@@ -43,6 +46,10 @@ For every UI change, read `docs/design/README.md`, the mapped milestone captures
 shared tokens. Use configured shadcn/ui registry primitives for generic controls; do not invent
 parallel buttons, inputs, cards, sheets, drawers, dialogs, selects, tables, alerts, or skeletons.
 Custom UI is limited to the documented Goal Tracker domain composites.
+
+M1 through M4 must each leave their owned surfaces at product quality. Current implementation
+captures and a side-by-side comparison are milestone exit evidence. M5 is the final integrated
+audit, not a phase for repairing avoidable foundational visual debt.
 
 Before completion, run:
 

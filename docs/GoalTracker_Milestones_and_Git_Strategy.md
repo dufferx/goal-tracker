@@ -12,6 +12,7 @@
 | D1 | Design implementation baseline | `docs/design-implementation-baseline` |
 | M1 | Identity and cross-user isolation | `feat/identity-isolation` |
 | M2 | Goals and item planning | `feat/goals-items` |
+| M2.1 | M1/M2 visual conformance recovery | `feat/goals-items` |
 | M3 | Financial ledger and history | `feat/financial-ledger` |
 | M4 | Guidance and temporary simulation | `feat/guidance-simulation` |
 | M5 | Integrated product UX | `feat/product-ux` |

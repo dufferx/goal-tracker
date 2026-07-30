@@ -32,11 +32,26 @@ function authMock(overrides: Partial<AuthGateway> = {}): AuthGateway {
   };
 }
 
+const emptyGoalList = { active: [], archived: [] };
+
 function apiMock(overrides: Partial<GoalTrackerApi> = {}): GoalTrackerApi {
   return {
     getCapabilities: vi.fn().mockResolvedValue(capabilities),
     getProfile: vi.fn().mockResolvedValue(profile),
     updateProfile: vi.fn().mockResolvedValue(profile),
+    listGoals: vi.fn().mockResolvedValue(emptyGoalList),
+    getGoal: vi.fn(),
+    createGoal: vi.fn(),
+    updateGoal: vi.fn(),
+    previewPlanning: vi.fn(),
+    archiveGoal: vi.fn(),
+    restoreGoal: vi.fn(),
+    deleteGoal: vi.fn(),
+    createItem: vi.fn(),
+    updateItem: vi.fn(),
+    deleteItem: vi.fn(),
+    reorderItems: vi.fn(),
+    convertPercent: vi.fn(),
     ...overrides,
   };
 }
@@ -151,6 +166,22 @@ describe('M1 web identity flows', () => {
     );
   });
 
+  it('uses an accessible eye control and reports password strength on sign-up', async () => {
+    window.history.replaceState({}, '', '/register');
+    render(<App auth={authMock()} api={apiMock()} />);
+
+    const password = await screen.findByLabelText('Password');
+    expect(password).toHaveAttribute('type', 'password');
+    expect(screen.getByLabelText('Password strength: 0 of 4')).toBeInTheDocument();
+
+    fireEvent.change(password, { target: { value: 'Strong-password-42' } });
+    expect(screen.getByLabelText('Password strength: 4 of 4')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show password' }));
+    expect(password).toHaveAttribute('type', 'text');
+    expect(screen.getByRole('button', { name: 'Hide password' })).toBeInTheDocument();
+  });
+
   it('loads and updates the authenticated user profile', async () => {
     window.history.replaceState({}, '', '/settings');
     const session = { accessToken: 'access-token', email: 'alex@example.com' };
@@ -164,7 +195,7 @@ describe('M1 web identity flows', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Settings' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: /Alex alex@example\.com/ }));
     const name = screen.getByLabelText('Display name');
     fireEvent.change(name, { target: { value: 'Alex Rivera' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -206,7 +237,9 @@ describe('M1 web identity flows', () => {
       />,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Know where you stand, monthly.' }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Create your account' })).not.toBeInTheDocument();
   });
 

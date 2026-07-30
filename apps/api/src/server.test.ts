@@ -148,7 +148,9 @@ describe('configured CORS boundary', () => {
 
     expect(allowed.statusCode).toBe(204);
     expect(allowed.headers['access-control-allow-origin']).toBe('https://app.example.test');
-    expect(allowed.headers['access-control-allow-methods']).toBe('GET, PUT, OPTIONS');
+    expect(allowed.headers['access-control-allow-methods']).toBe(
+      'GET, PUT, POST, PATCH, DELETE, OPTIONS',
+    );
     expect(denied.statusCode).toBe(403);
     expect(denied.headers['access-control-allow-origin']).toBeUndefined();
   });
