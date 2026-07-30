@@ -8,9 +8,13 @@
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
     "test": "vitest run",
+    "test:m1:integration": "vitest run src/m1-supabase.integration.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@goal-tracker/contracts": "workspace:*",
+    "@goal-tracker/database": "workspace:*",
+    "@supabase/supabase-js": "2.111.0",
     "fastify": "5.10.0"
   },
   "devDependencies": {

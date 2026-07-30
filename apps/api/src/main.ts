@@ -1,8 +1,23 @@
+import { createProfileRepository, createDatabase } from '@goal-tracker/database';
+
+import { createSupabaseAuthVerifier } from './auth.js';
+import { readApiConfig } from './config.js';
 import { buildServer } from './server.js';
 
-const server = buildServer();
+const config = readApiConfig(process.env);
+const database = createDatabase(config.databaseUrl);
+const server = buildServer({
+  allowedWebOrigin: config.allowedWebOrigin,
+  authVerifier: createSupabaseAuthVerifier(config.supabaseUrl, config.supabasePublishableKey),
+  deploymentCapabilities: config.deploymentCapabilities,
+  profileRepository: createProfileRepository(database.db),
+});
 const port = Number(process.env.API_PORT ?? 3000);
 const host = process.env.API_HOST ?? '127.0.0.1';
+
+server.addHook('onClose', async () => {
+  await database.close();
+});
 
 try {
   await server.listen({ host, port });

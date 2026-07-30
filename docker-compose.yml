@@ -6,7 +6,13 @@ services:
     environment:
       API_HOST: 0.0.0.0
       API_PORT: 3000
+      DATABASE_URL: '${DATABASE_URL}'
       NODE_ENV: development
+      PUBLIC_PASSWORD_RECOVERY_EMAIL_ENABLED: '${PUBLIC_PASSWORD_RECOVERY_EMAIL_ENABLED:-false}'
+      PUBLIC_REGISTRATION_ENABLED: '${PUBLIC_REGISTRATION_ENABLED:-false}'
+      SUPABASE_PUBLISHABLE_KEY: '${SUPABASE_PUBLISHABLE_KEY}'
+      SUPABASE_URL: '${SUPABASE_URL}'
+      WEB_ORIGIN: '${WEB_ORIGIN:-http://localhost:5173}'
     ports:
       - '${API_PORT:-3000}:3000'
 
@@ -19,5 +25,7 @@ services:
         condition: service_started
     environment:
       VITE_API_URL: '${VITE_API_URL:-http://localhost:3000}'
+      VITE_SUPABASE_PUBLISHABLE_KEY: '${VITE_SUPABASE_PUBLISHABLE_KEY}'
+      VITE_SUPABASE_URL: '${VITE_SUPABASE_URL}'
     ports:
       - '5173:5173'
