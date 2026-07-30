@@ -14,6 +14,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@goal-tracker/contracts": "workspace:*",
     "drizzle-orm": "0.45.2",
     "pg": "8.16.3"
   },

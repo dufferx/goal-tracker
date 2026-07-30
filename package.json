@@ -10,16 +10,17 @@
   },
   "scripts": {
     "build": "pnpm -r --if-present run build",
+    "build:packages": "pnpm --filter './packages/**' --if-present run build",
     "db:reset": "pnpm supabase db reset --local",
     "dev": "pnpm infra:start && pnpm dev:apps",
-    "dev:apps": "pnpm --parallel --filter @goal-tracker/web --filter @goal-tracker/api run dev",
+    "dev:apps": "pnpm build:packages && pnpm --parallel --filter @goal-tracker/web --filter @goal-tracker/api run dev",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "infra:start": "pnpm supabase start",
     "infra:stop": "pnpm supabase stop",
     "lint": "eslint . --max-warnings 0",
-    "test": "pnpm -r --if-present run test",
-    "typecheck": "pnpm -r --if-present run typecheck"
+    "test": "pnpm build:packages && pnpm -r --if-present run test",
+    "typecheck": "pnpm build:packages && pnpm -r --if-present run typecheck"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

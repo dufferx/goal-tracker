@@ -90,6 +90,10 @@ git diff --check
 Environment and self-hosting instructions will be finalized in M6. Until then, do not infer
 production readiness from the repository foundation.
 
+M1 authentication and recovery configuration is documented in
+[Identity operations](docs/GoalTracker_Identity_Operations.md). It is an early operational guide;
+M6 still owns production hardening.
+
 ## Contributing
 
 Work from `development`, implement only the active milestone, preserve unrelated changes, and

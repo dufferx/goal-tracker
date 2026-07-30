@@ -1,11 +1,19 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
+import * as schema from './schema.js';
+
+export { createProfileRepository } from './profile-repository.js';
+export type { ProfileRecord, ProfileRepository } from './profile-repository.js';
+export { profiles } from './schema.js';
+
 export function createDatabase(connectionString: string) {
   const pool = new Pool({ connectionString });
 
   return {
-    db: drizzle(pool),
+    db: drizzle(pool, { schema }),
     close: () => pool.end(),
   };
 }
+
+export type Database = ReturnType<typeof createDatabase>['db'];
