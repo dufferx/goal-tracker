@@ -38,6 +38,16 @@ These prompts are execution checklists, not independent sources of product truth
 > Do not add financial ledger, status, or simulation behavior. Follow the M2 captures and shared
 > design system; use shadcn/ui primitives instead of replacement controls.
 
+## M2.1 — Visual conformance recovery
+
+> Work only on M2.1 after M2 behavior passes and before M3 begins. Read `DESIGN.md`, compare every
+> M1/M2 surface with its mapped reference at the documented viewport, and correct blocking or
+> material differences. Use shadcn/ui primitives for every applicable generic control; selected
+> states must be unmistakable. Remove fake progress, future controls, and roadmap copy. Preserve
+> M1/M2 behavior and non-visual architecture. Store current implementation captures, document only
+> product-, responsive-, or accessibility-required deviations, run the full validation suite, and
+> require user visual acceptance before closing the milestone.
+
 ## M3 — Financial ledger
 
 > Work only on M3 after M2 passes. Implement the authoritative ledger and the single locked

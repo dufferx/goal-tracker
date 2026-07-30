@@ -3,9 +3,19 @@ import { Pool } from 'pg';
 
 import * as schema from './schema.js';
 
+export { createGoalRepository } from './goal-repository.js';
+export type {
+  CreateGoalRecordInput,
+  GoalItemRecord,
+  GoalRecord,
+  GoalRepository,
+  GoalStatus,
+  GoalTargetMode,
+  UpdateGoalRecordInput,
+} from './goal-repository.js';
 export { createProfileRepository } from './profile-repository.js';
 export type { ProfileRecord, ProfileRepository } from './profile-repository.js';
-export { profiles } from './schema.js';
+export { goalItems, goals, goalStatusEnum, goalTargetModeEnum, profiles } from './schema.js';
 
 export function createDatabase(connectionString: string) {
   const pool = new Pool({ connectionString });

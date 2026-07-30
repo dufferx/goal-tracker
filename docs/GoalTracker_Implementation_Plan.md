@@ -1,8 +1,8 @@
 # Goal Tracker — Implementation Plan
 
 **Status:** Approved
-**Last updated:** 2026-07-29
-**Sequence:** D0, D1, then M1 through M6 without overlap
+**Last updated:** 2026-07-30
+**Sequence:** D0, D1, M1, M2, M2.1, then M3 through M6 without overlap
 
 This is the canonical delivery plan. `implementation-plan.md` at the repository root is the
 discovery-era detailed planning record; this document governs execution.
@@ -173,6 +173,37 @@ system, with any accessibility-driven deviation documented.
 The Japan and empty/home-gym plans can be represented without tasks, checkpoints, or generic
 components. Item-derived goals calculate their target or report incomplete setup correctly.
 Implemented surfaces conform to the mapped references and shared design system.
+
+## M2.1 — M1/M2 visual conformance recovery
+
+**Goal:** Remove avoidable visual debt from M1 and M2 before financial behavior extends these
+surfaces.
+
+**Branch:** `feat/goals-items`
+
+### Scope
+
+- recover every mapped M1/M2 surface against the approved Graphite references;
+- use shadcn/ui primitives for every applicable generic control;
+- make selected, focused, disabled, loading, error, success, and destructive states unambiguous;
+- remove fake progress, future-feature controls, and implementation-roadmap copy;
+- store current implementation captures and compare them at the mapped viewports;
+- preserve validated M1/M2 product behavior and all non-visual architecture.
+
+### References
+
+- [M2.1 requirements](GoalTracker_M2_1_Visual_Conformance_Requirements.md)
+- [M2.1 implementation plan](GoalTracker_M2_1_Visual_Conformance_Implementation_Plan.md)
+- [Design delivery gate](../DESIGN.md)
+- [M1 implementation captures](design/implementation/m1/)
+- [M2 implementation captures](design/implementation/m2/)
+
+### Exit criteria
+
+All mapped M1/M2 states have current implementation evidence. Blocking and material differences
+have been corrected or have a documented product, responsive, or accessibility reason. Applicable
+generic controls trace to shadcn/ui, automated validation passes, and the user accepts the final
+visual comparison. M3 must not begin before this gate passes.
 
 ## M3 — Financial ledger and history
 

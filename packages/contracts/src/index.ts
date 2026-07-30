@@ -1,52 +1,51 @@
-import { z } from 'zod';
-
-export const currencyCodeSchema = z
-  .string()
-  .regex(/^[A-Z]{3}$/, 'Use a three-letter uppercase currency code.');
-
-export const deploymentCapabilitiesSchema = z
-  .object({
-    registrationEnabled: z.boolean(),
-    passwordRecoveryEmailEnabled: z.boolean(),
-  })
-  .strict();
-
-export type DeploymentCapabilities = z.infer<typeof deploymentCapabilitiesSchema>;
-
-export const profileSchema = z
-  .object({
-    id: z.uuid(),
-    displayName: z.string().trim().min(1).max(100).nullable(),
-    defaultCurrency: currencyCodeSchema,
-    createdAt: z.iso.datetime({ offset: true }),
-    updatedAt: z.iso.datetime({ offset: true }),
-  })
-  .strict();
-
-export type Profile = z.infer<typeof profileSchema>;
-
-export const updateProfileRequestSchema = z
-  .object({
-    displayName: z.string().trim().min(1).max(100).nullable(),
-    defaultCurrency: currencyCodeSchema,
-  })
-  .strict();
-
-export type UpdateProfileRequest = z.infer<typeof updateProfileRequestSchema>;
-
-export const apiFieldErrorsSchema = z.record(z.string(), z.array(z.string()));
-
-export const apiErrorSchema = z
-  .object({
-    error: z
-      .object({
-        code: z.string().min(1),
-        message: z.string().min(1),
-        fieldErrors: apiFieldErrorsSchema.optional(),
-        requestId: z.string().min(1),
-      })
-      .strict(),
-  })
-  .strict();
-
-export type ApiError = z.infer<typeof apiErrorSchema>;
+export { businessMonthDateSchema, businessMonthSchema } from './business-month.js';
+export { currencyCodeSchema } from './currency.js';
+export { apiErrorSchema, apiFieldErrorsSchema, type ApiError } from './errors.js';
+export {
+  allocationStateSchema,
+  contributionsPerMonthSchema,
+  convertPercentRequestSchema,
+  convertPercentResponseSchema,
+  createGoalItemRequestSchema,
+  createGoalRequestSchema,
+  deleteGoalRequestSchema,
+  fixedOverageDecisionSchema,
+  goalDerivedSchema,
+  goalDetailSchema,
+  goalItemInputSchema,
+  goalItemSchema,
+  goalListSchema,
+  goalSchema,
+  goalStatusSchema,
+  planningImpactSchema,
+  planningPreviewRequestSchema,
+  planningPreviewResponseSchema,
+  reorderGoalItemsRequestSchema,
+  targetModeSchema,
+  updateGoalItemRequestSchema,
+  updateGoalRequestSchema,
+  type ConvertPercentRequest,
+  type ConvertPercentResponse,
+  type CreateGoalItemRequest,
+  type CreateGoalRequest,
+  type DeleteGoalRequest,
+  type Goal,
+  type GoalDerived,
+  type GoalDetail,
+  type GoalItem,
+  type GoalList,
+  type PlanningPreviewRequest,
+  type PlanningPreviewResponse,
+  type ReorderGoalItemsRequest,
+  type UpdateGoalItemRequest,
+  type UpdateGoalRequest,
+} from './goals.js';
+export { moneyDecimalStringSchema, positiveMoneyDecimalStringSchema } from './money.js';
+export {
+  deploymentCapabilitiesSchema,
+  profileSchema,
+  updateProfileRequestSchema,
+  type DeploymentCapabilities,
+  type Profile,
+  type UpdateProfileRequest,
+} from './profile.js';

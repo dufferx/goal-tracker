@@ -1,4 +1,8 @@
-import { createProfileRepository, createDatabase } from '@goal-tracker/database';
+import {
+  createDatabase,
+  createGoalRepository,
+  createProfileRepository,
+} from '@goal-tracker/database';
 
 import { createSupabaseAuthVerifier } from './auth.js';
 import { readApiConfig } from './config.js';
@@ -11,6 +15,7 @@ const server = buildServer({
   authVerifier: createSupabaseAuthVerifier(config.supabaseUrl, config.supabasePublishableKey),
   deploymentCapabilities: config.deploymentCapabilities,
   profileRepository: createProfileRepository(database.db),
+  goalRepository: createGoalRepository(database.db),
 });
 const port = Number(process.env.API_PORT ?? 3000);
 const host = process.env.API_HOST ?? '127.0.0.1';

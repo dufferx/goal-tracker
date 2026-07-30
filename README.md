@@ -19,8 +19,9 @@ simulations in the MVP.
 
 ## Current state
 
-The repository contains the initial monorepo foundation, the D0 simplified-product documentation
-reset, and the D1 design implementation baseline. Feature implementation proceeds sequentially:
+The repository contains the monorepo foundation, D0/D1 documentation and design baseline, M1
+identity isolation, and M2 goals/item planning on `feat/goals-items`. Later feature work proceeds
+sequentially:
 
 | Milestone | Scope                                          |
 | --------- | ---------------------------------------------- |

@@ -9,12 +9,13 @@ Before implementing a milestone, read in this order:
 1. `docs/GoalTracker_Product_Requirements_Master.md` — authoritative product behavior.
 2. `docs/GoalTracker_Technical_Architecture.md` — authoritative technical decisions.
 3. `docs/GoalTracker_Architecture_Blueprint.md` — boundaries and dependency direction.
-4. `docs/design/README.md` — approved visual references and milestone ownership.
-5. `docs/design/GoalTracker_Design_System.md` — executable visual and interaction rules.
-6. `docs/GoalTracker_Implementation_Plan.md` — milestone scope and exit criteria.
-7. `docs/GoalTracker_Milestones_and_Git_Strategy.md` — branches, commits, PRs, releases.
-8. `docs/GoalTracker_Codex_Milestone_Prompts.md` — execution checklists.
-9. `docs/GoalTracker_Claude_Design_Prompt.md` — original design direction and quality bar.
+4. `DESIGN.md` — mandatory visual delivery workflow and acceptance gate.
+5. `docs/design/README.md` — approved visual references and milestone ownership.
+6. `docs/design/GoalTracker_Design_System.md` — executable visual and interaction rules.
+7. `docs/GoalTracker_Implementation_Plan.md` — milestone scope and exit criteria.
+8. `docs/GoalTracker_Milestones_and_Git_Strategy.md` — branches, commits, PRs, releases.
+9. `docs/GoalTracker_Codex_Milestone_Prompts.md` — execution checklists.
+10. `docs/GoalTracker_Claude_Design_Prompt.md` — original design direction and quality bar.
 
 `docs/GoalTracker_Codex_Master_Prompt.md` summarizes standing implementation rules.
 `feature-requirements.md` and `implementation-plan.md` are retained discovery records; the files
@@ -136,7 +137,9 @@ ui       -> no authoritative domain logic
   shared design-system rules. Match them closely using shared Graphite tokens.
 - Use the configured shadcn/ui registry for generic primitives. Do not hand-roll replacements for
   buttons, inputs, cards, dialogs, drawers, sheets, selects, tables, alerts, badges, skeletons, or
-  tooltips. Add a custom component only when it is an approved Goal Tracker domain composite.
+  tooltips. This is mandatory whenever an applicable shadcn primitive exists. A no-primitive
+  exception must be documented and approved. Add a custom component only when it is an approved
+  Goal Tracker domain composite.
 - Treat visual references as implementation constraints, not permission to copy annotation text or
   move authoritative business logic into presentational components.
 

@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@goal-tracker/ui/components/select';
 import { Skeleton } from '@goal-tracker/ui/components/skeleton';
+import { ArrowLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import type {
   DeploymentCapabilities,
   Profile,
@@ -18,40 +19,63 @@ import type {
 } from '@goal-tracker/contracts';
 import { type FormEvent, useEffect, useState } from 'react';
 
+import { AppShell } from './components/app-shell';
 import { AuthShell, PageHeader } from './components/auth-shell';
+import { GoalsDashboard } from './features/goals/dashboard';
+import { GoalCreatePage } from './features/goals/goal-create';
+import { GoalDetailPage } from './features/goals/goal-detail';
+import { OnboardingWelcome } from './features/goals/onboarding';
 import { ApiRequestError, type GoalTrackerApi } from './lib/api';
 import type { AuthGateway, AuthSession } from './lib/auth';
+import type { GoalList } from '@goal-tracker/contracts';
 
 const currencyNames = new Intl.DisplayNames(['en'], { type: 'currency' });
 const currencies = Intl.supportedValuesOf('currency').map(
   (code) => [code, currencyNames.of(code) ?? code] as const,
 );
 
-type Route = 'sign-in' | 'register' | 'forgot-password' | 'update-password' | 'settings';
+type Route =
+  | 'sign-in'
+  | 'register'
+  | 'forgot-password'
+  | 'update-password'
+  | 'settings'
+  | 'goals'
+  | 'goal-create'
+  | 'goal-detail'
+  | 'goal-items';
 
 function currentRoute(): Route {
-  switch (window.location.pathname) {
-    case '/register':
-      return 'register';
-    case '/forgot-password':
-      return 'forgot-password';
-    case '/update-password':
-    case '/auth/callback':
-      return 'update-password';
-    case '/settings':
-      return 'settings';
-    default:
-      return 'sign-in';
-  }
+  const path = window.location.pathname;
+  if (path === '/register') return 'register';
+  if (path === '/forgot-password') return 'forgot-password';
+  if (path === '/update-password' || path === '/auth/callback') return 'update-password';
+  if (path === '/settings') return 'settings';
+  if (path === '/goals/new') return 'goal-create';
+  if (path === '/goals') return 'goals';
+  const itemsMatch = /^\/goals\/([^/]+)\/items$/.exec(path);
+  if (itemsMatch) return 'goal-items';
+  const detailMatch = /^\/goals\/([^/]+)$/.exec(path);
+  if (detailMatch) return 'goal-detail';
+  return 'sign-in';
 }
 
-function navigate(route: Route) {
+function currentGoalId(): string | undefined {
+  const match = /^\/goals\/([^/]+)/.exec(window.location.pathname);
+  return match?.[1] === 'new' ? undefined : match?.[1];
+}
+
+function navigate(route: Route, goalId?: string) {
   const paths: Record<Route, string> = {
     'sign-in': '/',
     register: '/register',
     'forgot-password': '/forgot-password',
     'update-password': '/update-password',
     settings: '/settings',
+    goals: '/goals',
+    'goal-create': '/goals/new',
+    'goal-detail': goalId ? `/goals/${goalId}` : '/goals',
+    'goal-items': goalId ? `/goals/${goalId}/items` : '/goals',
   };
   window.history.pushState({}, '', paths[route]);
   window.dispatchEvent(new PopStateEvent('popstate'));
@@ -75,14 +99,17 @@ function PasswordField({
   error,
   autoComplete,
   recoveryAction,
+  showStrength = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   error?: string;
   autoComplete: string;
   recoveryAction?: () => void;
+  showStrength?: boolean;
 }) {
   const [visible, setVisible] = useState(false);
+  const strength = passwordStrength(value);
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -102,7 +129,7 @@ function PasswordField({
         <Input
           id="password"
           name="password"
-          className="pr-16"
+          className="pr-12"
           type={visible ? 'text' : 'password'}
           autoComplete={autoComplete}
           value={value}
@@ -113,15 +140,46 @@ function PasswordField({
         <Button
           type="button"
           variant="ghost"
-          className="absolute inset-y-0 right-2 min-h-11 px-1 text-sm text-text-secondary hover:text-primary"
+          className="absolute inset-y-0 right-1 my-auto size-11 min-h-11 px-0 text-text-secondary hover:text-primary"
+          aria-label={visible ? 'Hide password' : 'Show password'}
           onClick={() => setVisible((current) => !current)}
         >
-          {visible ? 'Hide' : 'Show'}
+          {visible ? (
+            <EyeOff aria-hidden="true" className="size-5" />
+          ) : (
+            <Eye aria-hidden="true" className="size-5" />
+          )}
         </Button>
       </div>
+      {showStrength ? (
+        <div
+          aria-label={`Password strength: ${strength} of 4`}
+          className="grid grid-cols-4 gap-1.5"
+        >
+          {[1, 2, 3, 4].map((segment) => (
+            <span
+              key={segment}
+              className={
+                segment <= strength
+                  ? 'h-[3px] rounded-pill bg-primary'
+                  : 'h-[3px] rounded-pill bg-control'
+              }
+            />
+          ))}
+        </div>
+      ) : null}
       <ErrorText id="password-error">{error}</ErrorText>
     </div>
   );
+}
+
+function passwordStrength(value: string): number {
+  if (!value) return 0;
+  let score = value.length >= 8 ? 1 : 0;
+  if (value.length >= 12) score += 1;
+  if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score += 1;
+  if (/\d/.test(value) && /[^A-Za-z0-9]/.test(value)) score += 1;
+  return Math.min(score, 4);
 }
 
 function SignInPage({
@@ -204,8 +262,11 @@ function RegisterPage({
   auth: AuthGateway;
   registrationEnabled: boolean;
 }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const designFilled =
+    import.meta.env.DEV &&
+    new URLSearchParams(window.location.search).get('__design') === 'public-signup-filled';
+  const [email, setEmail] = useState(designFilled ? 'alex@example.com' : '');
+  const [password, setPassword] = useState(designFilled ? 'Strong-password-42' : '');
   const [currency, setCurrency] = useState('USD');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
@@ -256,11 +317,11 @@ function RegisterPage({
       <Button
         type="button"
         variant="ghost"
-        className="mb-5 min-h-11 w-11 justify-start px-0 text-text-secondary"
+        className="-mt-2 mb-3 min-h-11 w-11 justify-start px-0 text-text-secondary"
         aria-label="Back to sign in"
         onClick={() => navigate('sign-in')}
       >
-        ←
+        <ArrowLeft aria-hidden="true" className="size-4" />
       </Button>
       <PageHeader
         title="Create your account"
@@ -294,6 +355,7 @@ function RegisterPage({
             onChange={setPassword}
             error={passwordError}
             autoComplete="new-password"
+            showStrength
           />
           <div className="space-y-2">
             <Label htmlFor="currency">Default currency</Label>
@@ -352,11 +414,11 @@ function RecoveryPage({ auth, emailAvailable }: { auth: AuthGateway; emailAvaila
       <Button
         type="button"
         variant="ghost"
-        className="mb-5 min-h-11 w-11 justify-start px-0 text-text-secondary"
+        className="-mt-2 mb-3 min-h-11 w-11 justify-start px-0 text-text-secondary"
         aria-label="Back to sign in"
         onClick={() => navigate('sign-in')}
       >
-        ←
+        <ArrowLeft aria-hidden="true" className="size-4" />
       </Button>
       <PageHeader
         title="Reset your password"
@@ -473,6 +535,73 @@ function SettingsSkeleton() {
   );
 }
 
+function GoalsHome({
+  api,
+  session,
+  onSessionExpired,
+  onCreate,
+  onOpenGoal,
+  onOpenItems,
+}: {
+  api: GoalTrackerApi;
+  session: AuthSession;
+  onSessionExpired: () => void;
+  onCreate: () => void;
+  onOpenGoal: (goalId: string) => void;
+  onOpenItems: (goalId: string) => void;
+}) {
+  const [list, setList] = useState<GoalList>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>();
+  const [filter, setFilter] = useState<'active' | 'archived'>(
+    import.meta.env.DEV &&
+      new URLSearchParams(window.location.search).get('__design') === 'archived'
+      ? 'archived'
+      : 'active',
+  );
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    setError(undefined);
+    try {
+      const next = await api.listGoals(session);
+      setList(next);
+      setShowOnboarding(next.active.length === 0 && next.archived.length === 0);
+    } catch (err) {
+      if (err instanceof ApiRequestError && err.status === 401) {
+        onSessionExpired();
+        return;
+      }
+      setError(err instanceof Error ? err.message : 'The server did not answer');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, [session.accessToken]);
+
+  if (showOnboarding && !loading && !error) {
+    return <OnboardingWelcome onCreate={onCreate} onBrowse={() => setShowOnboarding(false)} />;
+  }
+
+  return (
+    <GoalsDashboard
+      list={list}
+      loading={loading}
+      error={error}
+      filter={filter}
+      onFilterChange={setFilter}
+      onRetry={() => void load()}
+      onCreate={onCreate}
+      onOpenGoal={onOpenGoal}
+      onOpenItems={onOpenItems}
+    />
+  );
+}
+
 function SettingsPage({
   api,
   auth,
@@ -494,6 +623,7 @@ function SettingsPage({
   const [pending, setPending] = useState(false);
   const [saveError, setSaveError] = useState<string>();
   const [saved, setSaved] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(true);
   const [signOutPending, setSignOutPending] = useState(false);
   const [signOutError, setSignOutError] = useState<string>();
 
@@ -560,7 +690,7 @@ function SettingsPage({
   if (!profile && !loadError) return <SettingsSkeleton />;
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[620px] px-4 pb-8 pt-8 sm:px-6">
+    <div className="mx-auto w-full max-w-[620px]">
       <h1 className="mb-5 text-[27px] font-semibold tracking-[-0.025em]">Settings</h1>
       {loadError ? (
         <Alert variant="error" className="mb-4">
@@ -573,23 +703,24 @@ function SettingsPage({
       ) : null}
       {profile ? (
         <>
-          <Card className="mb-3">
-            <CardContent className="flex items-center gap-3 p-4">
-              <div
-                aria-hidden="true"
-                className="grid size-11 place-items-center rounded-pill bg-control text-lg text-primary"
-              >
-                {(profile.displayName || session.email).slice(0, 1).toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold">{profile.displayName || 'No display name'}</p>
-                <p className="truncate text-sm text-text-tertiary">{session.email}</p>
-              </div>
-              <Button className="ml-auto" variant="ghost" onClick={() => setEditing(true)}>
-                Edit
-              </Button>
-            </CardContent>
-          </Card>
+          <Button
+            type="button"
+            variant="outline"
+            className="mb-3 min-h-[74px] w-full justify-start rounded-card bg-card px-4 text-left"
+            onClick={() => setEditing(true)}
+          >
+            <div
+              aria-hidden="true"
+              className="grid size-11 place-items-center rounded-pill bg-control text-lg text-primary"
+            >
+              {(profile.displayName || session.email).slice(0, 1).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold">{profile.displayName || 'No display name'}</p>
+              <p className="truncate text-sm text-text-tertiary">{session.email}</p>
+            </div>
+            <ChevronRight aria-hidden="true" className="ml-auto size-4 text-text-tertiary" />
+          </Button>
           {editing ? (
             <Card className="mb-3">
               <CardContent className="p-4">
@@ -663,34 +794,151 @@ function SettingsPage({
           onClick={() => navigate('update-password')}
         >
           Change password
-          <span aria-hidden="true" className="ml-auto text-text-secondary">
-            ›
-          </span>
+          <ChevronRight aria-hidden="true" className="ml-auto size-4 text-text-tertiary" />
         </Button>
-        <div className="px-4 py-4">
-          <h2 className="mb-3 font-semibold">About this deployment</h2>
-          <dl className="space-y-2 text-sm">
-            <div className="flex justify-between gap-4">
-              <dt className="text-text-secondary">Registration</dt>
-              <dd>{capabilities.registrationEnabled ? 'Open' : 'Closed'}</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-text-secondary">Password reset email</dt>
-              <dd>{capabilities.passwordRecoveryEmailEnabled ? 'Configured' : 'Not configured'}</dd>
-            </div>
-          </dl>
-        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          className="min-h-14 w-full justify-start rounded-none px-4 text-foreground"
+          aria-expanded={aboutOpen}
+          onClick={() => setAboutOpen((current) => !current)}
+        >
+          About this deployment
+          <ChevronRight
+            aria-hidden="true"
+            className={`ml-auto size-4 text-text-tertiary transition-transform ${aboutOpen ? 'rotate-90' : ''}`}
+          />
+        </Button>
       </Card>
+      {aboutOpen ? (
+        <Card className="mb-3">
+          <CardContent className="p-4">
+            <h2 className="mb-3 font-semibold">About this deployment</h2>
+            <dl className="space-y-2 text-sm">
+              <div className="flex justify-between gap-4">
+                <dt className="text-text-secondary">Version</dt>
+                <dd data-date>development</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-text-secondary">Registration</dt>
+                <dd>{capabilities.registrationEnabled ? 'Open' : 'Closed'}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-text-secondary">Password reset email</dt>
+                <dd>
+                  {capabilities.passwordRecoveryEmailEnabled ? 'Configured' : 'Not configured'}
+                </dd>
+              </div>
+            </dl>
+            <p className="mt-3 text-sm leading-5 text-text-tertiary">
+              Backups are managed by the person who runs this deployment.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
       <ErrorText>{signOutError}</ErrorText>
       <Button
         variant="outline"
-        className="mt-3 w-full justify-start text-status-behind"
+        className="mt-3 min-h-14 w-full justify-start rounded-card bg-card text-status-behind"
         disabled={signOutPending}
         onClick={() => void signOut()}
       >
         {signOutPending ? 'Signing out…' : 'Sign out'}
       </Button>
-    </main>
+    </div>
+  );
+}
+
+function AuthenticatedApp({
+  api,
+  auth,
+  session,
+  capabilities,
+  route,
+  onSessionExpired,
+}: {
+  api: GoalTrackerApi;
+  auth: AuthGateway;
+  session: AuthSession;
+  capabilities: DeploymentCapabilities;
+  route: Route;
+  onSessionExpired: () => void;
+}) {
+  const [profile, setProfile] = useState<Profile>();
+  const goalId = currentGoalId();
+
+  useEffect(() => {
+    void api
+      .getProfile(session)
+      .then(setProfile)
+      .catch((error: unknown) => {
+        if (error instanceof ApiRequestError && error.status === 401) {
+          onSessionExpired();
+        }
+      });
+  }, [api, session, onSessionExpired]);
+
+  if (route === 'settings') {
+    return (
+      <AppShell
+        active="settings"
+        onNavigateGoals={() => navigate('goals')}
+        onNavigateSettings={() => navigate('settings')}
+      >
+        <SettingsPage
+          api={api}
+          auth={auth}
+          session={session}
+          capabilities={capabilities}
+          onSessionExpired={onSessionExpired}
+        />
+      </AppShell>
+    );
+  }
+
+  if (route === 'goal-create') {
+    if (!profile) return <SettingsSkeleton />;
+    return (
+      <GoalCreatePage
+        api={api}
+        session={session}
+        profile={profile}
+        onCancel={() => navigate('goals')}
+        onCreated={() => navigate('goals')}
+        onSessionExpired={onSessionExpired}
+      />
+    );
+  }
+
+  if ((route === 'goal-detail' || route === 'goal-items') && goalId) {
+    return (
+      <GoalDetailPage
+        api={api}
+        session={session}
+        goalId={goalId}
+        initialTab={route === 'goal-items' ? 'items' : 'settings'}
+        onBack={() => navigate('goals')}
+        onDeleted={() => navigate('goals')}
+        onSessionExpired={onSessionExpired}
+      />
+    );
+  }
+
+  return (
+    <AppShell
+      active="goals"
+      onNavigateGoals={() => navigate('goals')}
+      onNavigateSettings={() => navigate('settings')}
+    >
+      <GoalsHome
+        api={api}
+        session={session}
+        onSessionExpired={onSessionExpired}
+        onCreate={() => navigate('goal-create')}
+        onOpenGoal={(id) => navigate('goal-items', id)}
+        onOpenItems={(id) => navigate('goal-items', id)}
+      />
+    </AppShell>
   );
 }
 
@@ -726,14 +974,29 @@ export function App({ auth, api }: { auth: AuthGateway; api: GoalTrackerApi }) {
       });
     void auth
       .restoreSession()
-      .then((value) => active && setSession(value))
+      .then((value) => {
+        if (!active) return;
+        setSession(value);
+        if (value && currentRoute() === 'sign-in') navigate('goals');
+      })
       .catch(() => active && setSession(null))
       .finally(() => active && setRestoring(false));
     const unsubscribe = auth.onChange((_event, value) => {
       setSession(value);
       setRestoring(false);
-      if (value && currentRoute() === 'sign-in') navigate('settings');
-      if (!value && currentRoute() === 'settings') navigate('sign-in');
+      if (value && (currentRoute() === 'sign-in' || currentRoute() === 'register')) {
+        navigate('goals');
+      }
+      if (
+        !value &&
+        (currentRoute() === 'settings' ||
+          currentRoute() === 'goals' ||
+          currentRoute() === 'goal-create' ||
+          currentRoute() === 'goal-detail' ||
+          currentRoute() === 'goal-items')
+      ) {
+        navigate('sign-in');
+      }
     });
     return () => {
       active = false;
@@ -757,26 +1020,14 @@ export function App({ auth, api }: { auth: AuthGateway; api: GoalTrackerApi }) {
     );
   }
 
-  if (route === 'settings') {
-    return session ? (
-      <SettingsPage
-        api={api}
-        auth={auth}
-        session={session}
-        capabilities={capabilities}
-        onSessionExpired={expireSession}
-      />
-    ) : (
-      <SignInPage auth={auth} registrationEnabled={capabilities.registrationEnabled} />
-    );
-  }
   if (session && route !== 'update-password') {
     return (
-      <SettingsPage
+      <AuthenticatedApp
         api={api}
         auth={auth}
         session={session}
         capabilities={capabilities}
+        route={route === 'sign-in' || route === 'register' ? 'goals' : route}
         onSessionExpired={expireSession}
       />
     );

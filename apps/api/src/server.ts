@@ -4,19 +4,21 @@ import {
   updateProfileRequestSchema,
 } from '@goal-tracker/contracts';
 import type { DeploymentCapabilities, Profile } from '@goal-tracker/contracts';
-import type { ProfileRecord, ProfileRepository } from '@goal-tracker/database';
+import type { GoalRepository, ProfileRecord, ProfileRepository } from '@goal-tracker/database';
 import Fastify from 'fastify';
-import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import type { AuthVerifier } from './auth.js';
-import { extractBearerToken } from './auth.js';
+import { requireOwnerId } from './auth-guard.js';
 import { apiError } from './errors.js';
+import { registerGoalRoutes } from './goals/routes.js';
+import { createGoalService } from './goals/service.js';
 
 export interface ServerDependencies {
   allowedWebOrigin?: string;
   authVerifier?: AuthVerifier;
   deploymentCapabilities?: DeploymentCapabilities;
   profileRepository?: ProfileRepository;
+  goalRepository?: GoalRepository;
 }
 
 const unavailableAuthVerifier: AuthVerifier = {
@@ -31,6 +33,39 @@ const unavailableProfileRepository: ProfileRepository = {
   },
   async updateByOwnerId() {
     throw new Error('Profile repository is not configured.');
+  },
+};
+
+const unavailableGoalRepository: GoalRepository = {
+  async listByOwner() {
+    throw new Error('Goal repository is not configured.');
+  },
+  async findByOwnerAndId() {
+    throw new Error('Goal repository is not configured.');
+  },
+  async listItemsByOwnerAndGoal() {
+    throw new Error('Goal repository is not configured.');
+  },
+  async create() {
+    throw new Error('Goal repository is not configured.');
+  },
+  async update() {
+    throw new Error('Goal repository is not configured.');
+  },
+  async permanentlyDelete() {
+    throw new Error('Goal repository is not configured.');
+  },
+  async createItem() {
+    throw new Error('Goal repository is not configured.');
+  },
+  async updateItem() {
+    throw new Error('Goal repository is not configured.');
+  },
+  async deleteItem() {
+    throw new Error('Goal repository is not configured.');
+  },
+  async reorderItems() {
+    throw new Error('Goal repository is not configured.');
   },
 };
 
@@ -55,48 +90,14 @@ function clientErrorStatus(error: unknown): number | undefined {
     : undefined;
 }
 
-async function requireOwnerId(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  authVerifier: AuthVerifier,
-): Promise<string | undefined> {
-  const accessToken = extractBearerToken(request);
-
-  if (!accessToken) {
-    await reply
-      .code(401)
-      .send(apiError(request.id, 'AUTH_REQUIRED', 'A valid access token is required.'));
-    return undefined;
-  }
-
-  let user;
-
-  try {
-    user = await authVerifier.verifyAccessToken(accessToken);
-  } catch (error) {
-    request.log.error({ err: error }, 'Authentication verification failed');
-    await reply
-      .code(503)
-      .send(apiError(request.id, 'AUTH_UNAVAILABLE', 'Authentication is temporarily unavailable.'));
-    return undefined;
-  }
-
-  if (!user) {
-    await reply
-      .code(401)
-      .send(apiError(request.id, 'AUTH_INVALID', 'The access token is invalid or expired.'));
-    return undefined;
-  }
-
-  return user.id;
-}
-
 export function buildServer(dependencies: ServerDependencies = {}) {
   const server = Fastify({
     logger: process.env.NODE_ENV !== 'test',
   });
   const authVerifier = dependencies.authVerifier ?? unavailableAuthVerifier;
   const profileRepository = dependencies.profileRepository ?? unavailableProfileRepository;
+  const goalRepository = dependencies.goalRepository ?? unavailableGoalRepository;
+  const goalService = createGoalService(goalRepository);
   const deploymentCapabilities = deploymentCapabilitiesSchema.parse(
     dependencies.deploymentCapabilities ?? {
       registrationEnabled: false,
@@ -121,7 +122,7 @@ export function buildServer(dependencies: ServerDependencies = {}) {
       return reply
         .headers({
           'access-control-allow-headers': 'authorization, content-type',
-          'access-control-allow-methods': 'GET, PUT, OPTIONS',
+          'access-control-allow-methods': 'GET, PUT, POST, PATCH, DELETE, OPTIONS',
         })
         .code(204)
         .send();
@@ -199,6 +200,8 @@ export function buildServer(dependencies: ServerDependencies = {}) {
         .send(apiError(request.id, 'INTERNAL_ERROR', 'The profile could not be updated.'));
     }
   });
+
+  registerGoalRoutes(server, { authVerifier, goalService });
 
   server.setNotFoundHandler((request, reply) =>
     reply.code(404).send(apiError(request.id, 'NOT_FOUND', 'The requested route was not found.')),
