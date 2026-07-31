@@ -10,6 +10,7 @@ import type {
 } from '@goal-tracker/contracts';
 import type {
   FinancialRepository,
+  FinancialTransactionRecord,
   GoalItemRecord,
   GoalRecord,
   GoalRepository,
@@ -128,6 +129,28 @@ export function createGoalService(
     );
   }
 
+  // Mutation responses must carry the real ledger so clients never see zeroed
+  // financials or a false currencyLocked after changing a goal with history.
+  async function currentDetail(
+    ownerId: string,
+    goalId: string,
+    known: { goal?: GoalRecord; items?: GoalItemRecord[] } = {},
+  ) {
+    const snapshot = await financialRepository?.findSnapshot(ownerId, goalId);
+    if (snapshot) {
+      return {
+        goal: snapshot.goal,
+        items: snapshot.items,
+        transactions: snapshot.transactions,
+      };
+    }
+    return {
+      goal: known.goal ?? (await requireGoal(ownerId, goalId)),
+      items: known.items ?? (await goalRepository.listItemsByOwnerAndGoal(ownerId, goalId)),
+      transactions: [] as FinancialTransactionRecord[],
+    };
+  }
+
   return {
     async list(ownerId: string) {
       const goals = await goalRepository.listByOwner(ownerId);
@@ -214,16 +237,7 @@ export function createGoalService(
         const items = await goalRepository.listItemsByOwnerAndGoal(ownerId, goalId);
         const targetItems = await itemsWithActivePurchasePrices(ownerId, goalId, items);
 
-        if (request.currency && request.currency !== goal.currency && financialRepository) {
-          const snapshot = await financialRepository.findSnapshot(ownerId, goalId);
-          if (snapshot && snapshot.transactions.length > 0) {
-            throw new GoalServiceError(
-              'CURRENCY_LOCKED',
-              'Currency cannot change after the first financial transaction.',
-              409,
-            );
-          }
-        }
+        const currencyChange = request.currency != null && request.currency !== goal.currency;
 
         const nextMode = request.targetMode ?? goal.targetMode;
         const nextFixed =
@@ -261,19 +275,30 @@ export function createGoalService(
 
         let fixedTargetMinor = validated.fixedTargetMinor;
         if (nextMode === 'fixed' && fixedTargetMinor != null) {
-          const resolution = resolveFixedOverage({
-            fixedTargetMinor,
-            itemsTotalMinor: validated.target.itemsTotalMinor,
-            decision: request.overageDecision,
-          });
-          fixedTargetMinor = resolution.resultingFixedTargetMinor;
+          // An overage decision is only required when this request introduces
+          // the overage. A goal already overallocated by an earlier
+          // keep_target choice must stay editable without re-deciding.
+          const overagePreexists =
+            goal.targetMode === 'fixed' &&
+            goal.fixedTargetMinor != null &&
+            validated.target.itemsTotalMinor > goal.fixedTargetMinor;
+          const targetOrModeChanged =
+            nextMode !== goal.targetMode || fixedTargetMinor !== goal.fixedTargetMinor;
+          if (!overagePreexists || targetOrModeChanged) {
+            const resolution = resolveFixedOverage({
+              fixedTargetMinor,
+              itemsTotalMinor: validated.target.itemsTotalMinor,
+              decision: request.overageDecision,
+            });
+            fixedTargetMinor = resolution.resultingFixedTargetMinor;
+          }
         }
 
         if (nextMode === 'items') {
           fixedTargetMinor = null;
         }
 
-        const updated = await goalRepository.update(ownerId, goalId, {
+        const updateInput = {
           name: request.name,
           description: request.description,
           currency: request.currency,
@@ -283,16 +308,27 @@ export function createGoalService(
           finalMonth: validated.finalMonth,
           contributionsPerMonth: validated.contributionsPerMonth,
           preferredContributionMinor: validated.preferredContributionMinor,
-        });
+        };
+        // Currency changes run under a goal row lock with the transaction
+        // count checked inside the same transaction, so a concurrent
+        // financial mutation cannot slip between the check and the write.
+        const updated = currencyChange
+          ? await goalRepository.updateLocked(ownerId, goalId, updateInput, ({ transactionCount }) => {
+              if (transactionCount > 0) {
+                throw new GoalServiceError(
+                  'CURRENCY_LOCKED',
+                  'Currency cannot change after the first financial transaction.',
+                  409,
+                );
+              }
+            })
+          : await goalRepository.update(ownerId, goalId, updateInput);
 
         if (!updated) {
           throw new GoalServiceError('GOAL_NOT_FOUND', 'Goal not found.', 404);
         }
 
-        return {
-          goal: updated,
-          items: await goalRepository.listItemsByOwnerAndGoal(ownerId, goalId),
-        };
+        return currentDetail(ownerId, goalId, { goal: updated });
       } catch (error) {
         mapDomainError(error);
       }
@@ -358,7 +394,11 @@ export function createGoalService(
         let requiresOverageDecision = false;
         if (afterMode === 'fixed' && afterFixed != null) {
           const itemsTotal = items.reduce((sum, item) => sum + item.expectedPriceMinor, 0n);
-          if (itemsTotal > afterFixed && request.overageDecision == null) {
+          // Mirror the update rule: a pre-existing keep_target overage does
+          // not require a new decision unless the target or mode changes.
+          const targetOrModeChanged =
+            afterMode !== goal.targetMode || afterFixed !== goal.fixedTargetMinor;
+          if (itemsTotal > afterFixed && request.overageDecision == null && targetOrModeChanged) {
             requiresOverageDecision = true;
           }
         }
@@ -388,10 +428,7 @@ export function createGoalService(
       if (!updated) {
         throw new GoalServiceError('GOAL_NOT_FOUND', 'Goal not found.', 404);
       }
-      return {
-        goal: updated,
-        items: await goalRepository.listItemsByOwnerAndGoal(ownerId, goalId),
-      };
+      return currentDetail(ownerId, goalId, { goal: updated });
     },
 
     async restore(ownerId: string, goalId: string) {
@@ -407,10 +444,7 @@ export function createGoalService(
       if (!updated) {
         throw new GoalServiceError('GOAL_NOT_FOUND', 'Goal not found.', 404);
       }
-      return {
-        goal: updated,
-        items: await goalRepository.listItemsByOwnerAndGoal(ownerId, goalId),
-      };
+      return currentDetail(ownerId, goalId, { goal: updated });
     },
 
     async permanentlyDelete(ownerId: string, goalId: string, request: DeleteGoalRequest) {
@@ -462,9 +496,7 @@ export function createGoalService(
           throw new GoalServiceError('GOAL_NOT_FOUND', 'Goal not found.', 404);
         }
 
-        const updatedGoal = await requireGoal(ownerId, goalId);
-        const updatedItems = await goalRepository.listItemsByOwnerAndGoal(ownerId, goalId);
-        return { goal: updatedGoal, items: updatedItems, item: created };
+        return { ...(await currentDetail(ownerId, goalId)), item: created };
       } catch (error) {
         mapDomainError(error);
       }
@@ -496,6 +528,10 @@ export function createGoalService(
             : current.dueMonth;
 
         if (goal.targetMode === 'fixed' && goal.fixedTargetMinor != null) {
+          const previousTotal = targetItems.reduce(
+            (sum, item) => sum + item.expectedPriceMinor,
+            0n,
+          );
           const itemsTotal = targetItems.reduce(
             (sum, item) =>
               sum +
@@ -504,15 +540,19 @@ export function createGoalService(
                 : item.expectedPriceMinor),
             0n,
           );
-          const resolution = resolveFixedOverage({
-            fixedTargetMinor: goal.fixedTargetMinor,
-            itemsTotalMinor: itemsTotal,
-            decision: request.overageDecision,
-          });
-          if (resolution.resultingFixedTargetMinor !== goal.fixedTargetMinor) {
-            await goalRepository.update(ownerId, goalId, {
-              fixedTargetMinor: resolution.resultingFixedTargetMinor,
+          // An overage decision is only required when this edit introduces or
+          // grows the overage; an already-overallocated goal stays editable.
+          if (itemsTotal > goal.fixedTargetMinor && itemsTotal > previousTotal) {
+            const resolution = resolveFixedOverage({
+              fixedTargetMinor: goal.fixedTargetMinor,
+              itemsTotalMinor: itemsTotal,
+              decision: request.overageDecision,
             });
+            if (resolution.resultingFixedTargetMinor !== goal.fixedTargetMinor) {
+              await goalRepository.update(ownerId, goalId, {
+                fixedTargetMinor: resolution.resultingFixedTargetMinor,
+              });
+            }
           }
         }
 
@@ -525,11 +565,7 @@ export function createGoalService(
           throw new GoalServiceError('ITEM_NOT_FOUND', 'Goal item not found.', 404);
         }
 
-        return {
-          goal: await requireGoal(ownerId, goalId),
-          items: await goalRepository.listItemsByOwnerAndGoal(ownerId, goalId),
-          item: updatedItem,
-        };
+        return { ...(await currentDetail(ownerId, goalId)), item: updatedItem };
       } catch (error) {
         mapDomainError(error);
       }
@@ -537,29 +573,26 @@ export function createGoalService(
 
     async deleteItem(ownerId: string, goalId: string, itemId: string) {
       await requireActiveGoal(ownerId, goalId);
-      if (financialRepository) {
-        const snapshot = await financialRepository.findSnapshot(ownerId, goalId);
-        if (snapshot) {
-          const active = replayLedger(
-            snapshot.transactions.map((row) => ({ ...row })),
-          ).activePurchases;
-          if (active.has(itemId)) {
-            throw new GoalServiceError(
-              'PURCHASED_ITEM_DELETE_BLOCKED',
-              'Undo this item’s purchase before deleting it.',
-              409,
-            );
-          }
+      // The repository removes the item and its fully-undone purchase history
+      // under a goal row lock; the guard rejects items with an active purchase.
+      const deleted = await goalRepository.deleteItem(ownerId, goalId, itemId, (transactions) => {
+        const undoneIds = new Set(
+          transactions
+            .filter((row) => row.kind === 'purchase_undo')
+            .map((row) => row.reversesTransactionId),
+        );
+        if (transactions.some((row) => row.kind === 'purchase' && !undoneIds.has(row.id))) {
+          throw new GoalServiceError(
+            'PURCHASED_ITEM_DELETE_BLOCKED',
+            'Undo this item’s purchase before deleting it.',
+            409,
+          );
         }
-      }
-      const deleted = await goalRepository.deleteItem(ownerId, goalId, itemId);
+      });
       if (!deleted) {
         throw new GoalServiceError('ITEM_NOT_FOUND', 'Goal item not found.', 404);
       }
-      return {
-        goal: await requireGoal(ownerId, goalId),
-        items: await goalRepository.listItemsByOwnerAndGoal(ownerId, goalId),
-      };
+      return currentDetail(ownerId, goalId);
     },
 
     async reorderItems(ownerId: string, goalId: string, request: ReorderGoalItemsRequest) {
@@ -569,10 +602,7 @@ export function createGoalService(
         if (items === undefined) {
           throw new GoalServiceError('GOAL_NOT_FOUND', 'Goal not found.', 404);
         }
-        return {
-          goal: await requireGoal(ownerId, goalId),
-          items,
-        };
+        return currentDetail(ownerId, goalId, { items });
       } catch (error) {
         mapDomainError(error);
       }

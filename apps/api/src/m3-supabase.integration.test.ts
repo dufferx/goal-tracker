@@ -57,9 +57,11 @@ integration('M3 ledger migration, RLS, and locking', () => {
 
   async function goal(owner: Awaited<ReturnType<typeof user>>, itemCount = 1) {
     const goalId = crypto.randomUUID();
+    // Seeds run through the service role: authenticated clients cannot write
+    // application tables directly.
     expect(
       (
-        await owner.client.from('goals').insert({
+        await admin.from('goals').insert({
           id: goalId,
           owner_id: owner.id,
           name: 'Home Gym',
@@ -75,7 +77,7 @@ integration('M3 ledger migration, RLS, and locking', () => {
     const itemIds = Array.from({ length: itemCount }, () => crypto.randomUUID());
     expect(
       (
-        await owner.client.from('goal_items').insert(
+        await admin.from('goal_items').insert(
           itemIds.map((id, position) => ({
             id,
             owner_id: owner.id,
@@ -95,7 +97,7 @@ integration('M3 ledger migration, RLS, and locking', () => {
     const b = await user();
     const aggregate = await goal(a);
     const transactionId = crypto.randomUUID();
-    const inserted = await a.client.from('financial_transactions').insert({
+    const inserted = await admin.from('financial_transactions').insert({
       id: transactionId,
       owner_id: a.id,
       goal_id: aggregate.goalId,
@@ -107,6 +109,8 @@ integration('M3 ledger migration, RLS, and locking', () => {
     expect(
       (await b.client.from('financial_transactions').select('id').eq('id', transactionId)).data,
     ).toEqual([]);
+    // Direct writes are rejected for everyone, including the owner: ledger
+    // mutations only flow through the backend Financial Engine.
     expect(
       (
         await b.client
@@ -114,8 +118,8 @@ integration('M3 ledger migration, RLS, and locking', () => {
           .update({ amount_minor: 1 })
           .eq('id', transactionId)
           .select('id')
-      ).data,
-    ).toEqual([]);
+      ).error,
+    ).not.toBeNull();
     expect(
       (
         await b.client.from('financial_transactions').insert({
@@ -128,7 +132,19 @@ integration('M3 ledger migration, RLS, and locking', () => {
         })
       ).error,
     ).not.toBeNull();
-    const malformed = await a.client.from('financial_transactions').insert({
+    expect(
+      (
+        await a.client.from('financial_transactions').insert({
+          id: crypto.randomUUID(),
+          owner_id: a.id,
+          goal_id: aggregate.goalId,
+          kind: 'contribution',
+          amount_minor: 1,
+          effective_date: '2026-07-30',
+        })
+      ).error,
+    ).not.toBeNull();
+    const malformed = await admin.from('financial_transactions').insert({
       id: crypto.randomUUID(),
       owner_id: a.id,
       goal_id: aggregate.goalId,
@@ -177,5 +193,20 @@ integration('M3 ledger migration, RLS, and locking', () => {
     await expect(
       goals.update(owner.id, aggregate.goalId, { currency: 'EUR' }),
     ).rejects.toMatchObject({ code: 'CURRENCY_LOCKED' });
+
+    // After a full undo the item can be deleted; its net-zero purchase pair
+    // leaves the ledger with it, and the remaining history replays cleanly.
+    await service.undo(owner.id, aggregate.goalId, purchased!.id, {
+      effectiveDate: '2026-07-31',
+    });
+    const afterDelete = await goals.deleteItem(owner.id, aggregate.goalId, purchased!.itemId!);
+    expect(afterDelete.items.some((entry) => entry.id === purchased!.itemId)).toBe(false);
+    const finalHistory = await service.history(owner.id, aggregate.goalId);
+    expect(finalHistory.transactions.some((row) => row.itemId === purchased!.itemId)).toBe(false);
+    expect(finalHistory.totals).toMatchObject({
+      funded: '600.00',
+      spent: '0.00',
+      available: '600.00',
+    });
   });
 });

@@ -146,7 +146,7 @@ export function registerGoalRoutes(
 
     try {
       const updated = await goalService.update(ownerId, goalId, parsed.data);
-      return toGoalDetailDto(updated.goal, updated.items);
+      return toGoalDetailDto(updated.goal, updated.items, updated.transactions);
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);
@@ -198,7 +198,7 @@ export function registerGoalRoutes(
 
     try {
       const archived = await goalService.archive(ownerId, goalId);
-      return toGoalDetailDto(archived.goal, archived.items);
+      return toGoalDetailDto(archived.goal, archived.items, archived.transactions);
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);
@@ -217,7 +217,7 @@ export function registerGoalRoutes(
 
     try {
       const restored = await goalService.restore(ownerId, goalId);
-      return toGoalDetailDto(restored.goal, restored.items);
+      return toGoalDetailDto(restored.goal, restored.items, restored.transactions);
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);
@@ -304,7 +304,7 @@ export function registerGoalRoutes(
       const created = await goalService.createItem(ownerId, goalId, parsed.data);
       return reply
         .code(201)
-        .send(goalDetailSchema.parse(toGoalDetailDto(created.goal, created.items)));
+        .send(goalDetailSchema.parse(toGoalDetailDto(created.goal, created.items, created.transactions)));
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);
@@ -337,7 +337,7 @@ export function registerGoalRoutes(
 
     try {
       const updated = await goalService.updateItem(ownerId, goalId, itemId, parsed.data);
-      return toGoalDetailDto(updated.goal, updated.items);
+      return toGoalDetailDto(updated.goal, updated.items, updated.transactions);
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);
@@ -356,7 +356,7 @@ export function registerGoalRoutes(
 
     try {
       const deleted = await goalService.deleteItem(ownerId, goalId, itemId);
-      return toGoalDetailDto(deleted.goal, deleted.items);
+      return toGoalDetailDto(deleted.goal, deleted.items, deleted.transactions);
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);
@@ -389,7 +389,9 @@ export function registerGoalRoutes(
 
     try {
       const reordered = await goalService.reorderItems(ownerId, goalId, parsed.data);
-      return reordered.items.map((item) => goalItemSchema.parse(toGoalItemDto(item)));
+      return reordered.items.map((item) =>
+        goalItemSchema.parse(toGoalItemDto(item, reordered.transactions)),
+      );
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);

@@ -2,7 +2,7 @@ import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
 import type { Database } from './index.js';
-import { goalItems, goals } from './schema.js';
+import { financialTransactions, goalItems, goals } from './schema.js';
 
 export type GoalStatus = 'active' | 'archived';
 export type GoalTargetMode = 'fixed' | 'items';
@@ -67,6 +67,13 @@ export interface UpdateGoalRecordInput {
   status?: GoalStatus;
 }
 
+/** Minimal ledger reference passed to the deleteItem guard. */
+export interface GoalItemTransactionReference {
+  id: string;
+  kind: 'contribution' | 'withdrawal' | 'purchase' | 'purchase_undo';
+  reversesTransactionId: string | null;
+}
+
 export interface GoalRepository {
   listByOwner(ownerId: string): Promise<GoalRecord[]>;
   findByOwnerAndId(ownerId: string, goalId: string): Promise<GoalRecord | undefined>;
@@ -76,6 +83,17 @@ export interface GoalRepository {
     ownerId: string,
     goalId: string,
     update: UpdateGoalRecordInput,
+  ): Promise<GoalRecord | undefined>;
+  /**
+   * Update under a `FOR UPDATE` goal row lock. The guard runs inside the same
+   * transaction after the lock is taken, so checks (e.g. currency immutability)
+   * cannot race with a concurrent financial mutation.
+   */
+  updateLocked(
+    ownerId: string,
+    goalId: string,
+    update: UpdateGoalRecordInput,
+    guard?: (locked: { goal: GoalRecord; transactionCount: number }) => void,
   ): Promise<GoalRecord | undefined>;
   permanentlyDelete(ownerId: string, goalId: string): Promise<boolean>;
   createItem(
@@ -89,7 +107,19 @@ export interface GoalRepository {
     itemId: string,
     update: Partial<{ name: string; expectedPriceMinor: bigint; dueMonth: string | null }>,
   ): Promise<GoalItemRecord | undefined>;
-  deleteItem(ownerId: string, goalId: string, itemId: string): Promise<boolean>;
+  /**
+   * Delete an item under a `FOR UPDATE` goal row lock, removing its ledger
+   * references in the same transaction. The guard receives the item's ledger
+   * rows and may throw to veto the delete (e.g. an active purchase). Only
+   * fully-undone purchase pairs may reach the delete: they net to zero, so
+   * replaying the remaining history stays valid.
+   */
+  deleteItem(
+    ownerId: string,
+    goalId: string,
+    itemId: string,
+    guard?: (transactions: GoalItemTransactionReference[]) => void,
+  ): Promise<boolean>;
   reorderItems(
     ownerId: string,
     goalId: string,
@@ -127,6 +157,27 @@ function mapItem(row: typeof goalItems.$inferSelect): GoalItemRecord {
     position: row.position,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+  };
+}
+
+function goalUpdateSet(update: UpdateGoalRecordInput) {
+  return {
+    ...(update.name !== undefined ? { name: update.name } : {}),
+    ...(update.description !== undefined ? { description: update.description } : {}),
+    ...(update.currency !== undefined ? { currency: update.currency } : {}),
+    ...(update.targetMode !== undefined ? { targetMode: update.targetMode } : {}),
+    ...(update.fixedTargetMinor !== undefined
+      ? { fixedTargetMinor: update.fixedTargetMinor }
+      : {}),
+    ...(update.startMonth !== undefined ? { startMonth: update.startMonth } : {}),
+    ...(update.finalMonth !== undefined ? { finalMonth: update.finalMonth } : {}),
+    ...(update.contributionsPerMonth !== undefined
+      ? { contributionsPerMonth: update.contributionsPerMonth }
+      : {}),
+    ...(update.preferredContributionMinor !== undefined
+      ? { preferredContributionMinor: update.preferredContributionMinor }
+      : {}),
+    ...(update.status !== undefined ? { status: update.status } : {}),
   };
 }
 
@@ -212,27 +263,43 @@ export function createGoalRepository(db: Database): GoalRepository {
     async update(ownerId, goalId, update) {
       const [row] = await db
         .update(goals)
-        .set({
-          ...(update.name !== undefined ? { name: update.name } : {}),
-          ...(update.description !== undefined ? { description: update.description } : {}),
-          ...(update.currency !== undefined ? { currency: update.currency } : {}),
-          ...(update.targetMode !== undefined ? { targetMode: update.targetMode } : {}),
-          ...(update.fixedTargetMinor !== undefined
-            ? { fixedTargetMinor: update.fixedTargetMinor }
-            : {}),
-          ...(update.startMonth !== undefined ? { startMonth: update.startMonth } : {}),
-          ...(update.finalMonth !== undefined ? { finalMonth: update.finalMonth } : {}),
-          ...(update.contributionsPerMonth !== undefined
-            ? { contributionsPerMonth: update.contributionsPerMonth }
-            : {}),
-          ...(update.preferredContributionMinor !== undefined
-            ? { preferredContributionMinor: update.preferredContributionMinor }
-            : {}),
-          ...(update.status !== undefined ? { status: update.status } : {}),
-        })
+        .set(goalUpdateSet(update))
         .where(and(eq(goals.ownerId, ownerId), eq(goals.id, goalId)))
         .returning();
       return row ? mapGoal(row) : undefined;
+    },
+
+    async updateLocked(ownerId, goalId, update, guard) {
+      return db.transaction(async (tx) => {
+        const lockedRows = await tx
+          .select()
+          .from(goals)
+          .where(and(eq(goals.ownerId, ownerId), eq(goals.id, goalId)))
+          .for('update')
+          .limit(1);
+        const locked = lockedRows[0];
+        if (!locked) return undefined;
+
+        if (guard) {
+          const countRows = await tx
+            .select({ count: sql<number>`count(*)::int` })
+            .from(financialTransactions)
+            .where(
+              and(
+                eq(financialTransactions.ownerId, ownerId),
+                eq(financialTransactions.goalId, goalId),
+              ),
+            );
+          guard({ goal: mapGoal(locked), transactionCount: Number(countRows[0]?.count ?? 0) });
+        }
+
+        const [row] = await tx
+          .update(goals)
+          .set(goalUpdateSet(update))
+          .where(and(eq(goals.ownerId, ownerId), eq(goals.id, goalId)))
+          .returning();
+        return row ? mapGoal(row) : undefined;
+      });
     },
 
     async permanentlyDelete(ownerId, goalId) {
@@ -304,18 +371,53 @@ export function createGoalRepository(db: Database): GoalRepository {
       return row ? mapItem(row) : undefined;
     },
 
-    async deleteItem(ownerId, goalId, itemId) {
-      const deleted = await db
-        .delete(goalItems)
-        .where(
-          and(
-            eq(goalItems.ownerId, ownerId),
-            eq(goalItems.goalId, goalId),
-            eq(goalItems.id, itemId),
-          ),
-        )
-        .returning({ id: goalItems.id });
-      return deleted.length > 0;
+    async deleteItem(ownerId, goalId, itemId, guard) {
+      return db.transaction(async (tx) => {
+        const locked = await tx.execute(
+          sql`select id from public.goals where owner_id = ${ownerId} and id = ${goalId} for update`,
+        );
+        if (locked.rowCount === 0) return false;
+
+        const references = await tx
+          .select({
+            id: financialTransactions.id,
+            kind: financialTransactions.kind,
+            reversesTransactionId: financialTransactions.reversesTransactionId,
+          })
+          .from(financialTransactions)
+          .where(
+            and(
+              eq(financialTransactions.ownerId, ownerId),
+              eq(financialTransactions.goalId, goalId),
+              eq(financialTransactions.itemId, itemId),
+            ),
+          );
+        guard?.(references);
+
+        if (references.length > 0) {
+          await tx
+            .delete(financialTransactions)
+            .where(
+              and(
+                eq(financialTransactions.ownerId, ownerId),
+                eq(financialTransactions.goalId, goalId),
+                eq(financialTransactions.itemId, itemId),
+              ),
+            );
+        }
+
+        const deleted = await tx
+          .delete(goalItems)
+          .where(
+            and(
+              eq(goalItems.ownerId, ownerId),
+              eq(goalItems.goalId, goalId),
+              eq(goalItems.id, itemId),
+            ),
+          )
+          .returning({ id: goalItems.id });
+        return deleted.length > 0;
+      });
     },
 
     async reorderItems(ownerId, goalId, orderedItemIds) {

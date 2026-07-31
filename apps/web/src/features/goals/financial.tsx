@@ -114,13 +114,13 @@ export function ContributionDrawer({
     setPending(true);
     setError(undefined);
     try {
-      await api.createFinancialTransaction(session, goal.id, {
+      const result = await api.createFinancialTransaction(session, goal.id, {
         kind,
         amount: normalizeMoneyInput(amount),
         effectiveDate: date,
       });
       await onReconciled(
-        `${kind === 'contribution' ? 'Contribution added' : 'Withdrawal recorded'} for ${goal.name}.`,
+        `${kind === 'contribution' ? 'Contribution added' : 'Withdrawal recorded'} for ${goal.name} — Available ${formatMoney(result.totals.available, goal.currency)}.`,
       );
       setAmount('');
       onOpenChange(false);
@@ -443,14 +443,15 @@ export function FinancialOverview({
   const [undoUnknownResult, setUndoUnknownResult] = useState(false);
   const [undoError, setUndoError] = useState<string>();
   const [message, setMessage] = useState<string>();
-  async function refresh(messageText?: string) {
+  async function refresh(messageText?: string | ((history: FinancialHistory) => string)) {
     const [nextGoal, nextHistory] = await Promise.all([
       api.getGoal(session, goal.id),
       api.getFinancialHistory(session, goal.id),
     ]);
     onGoalChanged(nextGoal);
     setHistory(nextHistory);
-    if (messageText) setMessage(messageText);
+    const text = typeof messageText === 'function' ? messageText(nextHistory) : messageText;
+    if (text) setMessage(text);
   }
   useEffect(() => {
     void api.getFinancialHistory(session, goal.id).then(setHistory);
@@ -467,7 +468,10 @@ export function FinancialOverview({
       await api.undoPurchase(session, goal.id, undo.purchase.transactionId, {
         effectiveDate: today(),
       });
-      await refresh('Purchase undone.');
+      await refresh(
+        (history) =>
+          `Purchase undone — Available ${formatMoney(history.totals.available, goal.currency)}.`,
+      );
       setUndo(undefined);
     } catch (reason) {
       if (reason instanceof ApiRequestError) setUndoError(reason.message);
@@ -636,7 +640,12 @@ export function FinancialOverview({
         api={api}
         session={session}
         onClose={() => setPurchaseItem(undefined)}
-        onChanged={() => refresh('Purchase recorded.')}
+        onChanged={() =>
+          refresh(
+            (history) =>
+              `Purchase recorded — Available ${formatMoney(history.totals.available, goal.currency)}.`,
+          )
+        }
       />
       <AlertDialog
         open={Boolean(undo)}
@@ -1017,7 +1026,9 @@ export function FinancialHistoryPage({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep it</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void remove()}>Delete transaction</AlertDialogAction>
+            <AlertDialogAction variant="danger" onClick={() => void remove()}>
+              Delete transaction
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

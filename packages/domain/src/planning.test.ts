@@ -191,16 +191,16 @@ describe('previewPlanningChange', () => {
     },
   );
 
-  it('rejects a fixed overage without an explicit decision', () => {
-    expect(() =>
-      previewPlanningChange({
-        before: baseGoal,
-        after: {
-          ...baseGoal,
-          items: [{ name: 'Flights', expectedPriceMinor: 12_000n, dueMonth: null, position: 0 }],
-        },
-      }),
-    ).toThrow(/keep_target or increase_target/);
+  it('keeps the target unchanged for an undecided fixed overage', () => {
+    const result = previewPlanningChange({
+      before: baseGoal,
+      after: {
+        ...baseGoal,
+        items: [{ name: 'Flights', expectedPriceMinor: 12_000n, dueMonth: null, position: 0 }],
+      },
+    });
+
+    expect(result.resultingFixedTargetMinor).toBe(baseGoal.fixedTargetMinor);
   });
 
   it.each([

@@ -161,12 +161,19 @@ export function previewPlanningChange(input: {
 
   let resultingFixedTargetMinor = validatedAfter.fixedTargetMinor;
   if (input.after.targetMode === 'fixed' && resultingFixedTargetMinor != null) {
-    const resolution = resolveFixedOverage({
-      fixedTargetMinor: resultingFixedTargetMinor,
-      itemsTotalMinor: validatedAfter.target.itemsTotalMinor,
-      decision: input.overageDecision,
-    });
-    resultingFixedTargetMinor = resolution.resultingFixedTargetMinor;
+    // An undecided overage is reported by the caller (requiresOverageDecision)
+    // instead of throwing, so already-overallocated goals stay previewable.
+    const undecidedOverage =
+      validatedAfter.target.itemsTotalMinor > resultingFixedTargetMinor &&
+      input.overageDecision == null;
+    if (!undecidedOverage) {
+      const resolution = resolveFixedOverage({
+        fixedTargetMinor: resultingFixedTargetMinor,
+        itemsTotalMinor: validatedAfter.target.itemsTotalMinor,
+        decision: input.overageDecision,
+      });
+      resultingFixedTargetMinor = resolution.resultingFixedTargetMinor;
+    }
   }
 
   const beforeTarget = calculateTarget({

@@ -934,7 +934,7 @@ function SettingsPage({
       <ErrorText>{signOutError}</ErrorText>
       <Button
         variant="outline"
-        className="mt-3 min-h-14 w-full justify-start rounded-card bg-card text-status-behind"
+        className="mt-3 min-h-14 w-full justify-start rounded-card bg-card"
         disabled={signOutPending}
         onClick={() => void signOut()}
       >
@@ -1012,7 +1012,9 @@ function AuthenticatedApp({
         session={session}
         goalId={goalId}
         initialTab={route === 'goal-items' ? 'items' : 'overview'}
-        onBack={() => navigate('goals')}
+        onBack={() =>
+          route === 'goal-items' ? navigate('goal-detail', goalId) : navigate('goals')
+        }
         onOpenOverview={() => navigate('goal-detail', goalId)}
         onOpenItems={() => navigate('goal-items', goalId)}
         onOpenHistory={() => navigate('goal-history', goalId)}
