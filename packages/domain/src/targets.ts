@@ -6,6 +6,7 @@ export type AllocationState = 'allocated' | 'unallocated' | 'overallocated';
 
 export interface TargetItemInput {
   expectedPriceMinor: bigint;
+  actualPriceMinor?: bigint | null;
 }
 
 export interface TargetCalculationInput {
@@ -33,7 +34,9 @@ export class TargetError extends Error {
 
 export function sumExpectedPrices(items: readonly TargetItemInput[]): bigint {
   return addMinor(
-    ...items.map((item) => assertPositiveMinor(item.expectedPriceMinor, 'expectedPrice')),
+    ...items.map((item) =>
+      assertPositiveMinor(item.actualPriceMinor ?? item.expectedPriceMinor, 'itemPrice'),
+    ),
   );
 }
 

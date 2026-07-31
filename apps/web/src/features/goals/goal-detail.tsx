@@ -17,6 +17,14 @@ import {
 import { Badge } from '@goal-tracker/ui/components/badge';
 import { Button } from '@goal-tracker/ui/components/button';
 import { Card, CardContent } from '@goal-tracker/ui/components/card';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@goal-tracker/ui/components/drawer';
 import { Input } from '@goal-tracker/ui/components/input';
 import { Label } from '@goal-tracker/ui/components/label';
 import { RadioGroup, RadioGroupItem } from '@goal-tracker/ui/components/radio-group';
@@ -28,14 +36,6 @@ import {
   SelectValue,
 } from '@goal-tracker/ui/components/select';
 import { Skeleton } from '@goal-tracker/ui/components/skeleton';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@goal-tracker/ui/components/sheet';
 import { ArrowLeft, ChevronDown, ChevronUp, MoreHorizontal } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 
@@ -49,6 +49,8 @@ import {
   normalizeMoneyInput,
 } from '../../lib/format';
 import { MoneyInput } from '../../components/money-input';
+import { MobileNavigation } from '../../components/app-shell';
+import { FinancialOverview } from './financial';
 
 const months = monthOptions(2025, 6);
 
@@ -56,25 +58,44 @@ export function GoalDetailPage({
   api,
   session,
   goalId,
-  initialTab = 'items',
+  initialTab = 'overview',
   onBack,
+  onOpenOverview,
+  onOpenItems,
+  onOpenHistory,
+  onOpenSettings,
   onDeleted,
   onSessionExpired,
 }: {
   api: GoalTrackerApi;
   session: AuthSession;
   goalId: string;
-  initialTab?: 'items' | 'settings';
+  initialTab?: 'overview' | 'items' | 'settings';
   onBack: () => void;
+  onOpenOverview: () => void;
+  onOpenItems: () => void;
+  onOpenHistory: () => void;
+  onOpenSettings: () => void;
   onDeleted: () => void;
   onSessionExpired: () => void;
 }) {
   const [goal, setGoal] = useState<GoalDetail>();
-  const [tab, setTab] = useState<'items' | 'settings'>(initialTab);
+  const [tab, setTab] = useState<'overview' | 'items' | 'settings'>(initialTab);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string>();
+  const [contributionSignal, setContributionSignal] = useState(0);
+
+  function showOverview() {
+    setTab('overview');
+    onOpenOverview();
+  }
+
+  function showItems() {
+    setTab('items');
+    onOpenItems();
+  }
 
   async function load() {
     setLoading(true);
@@ -126,21 +147,25 @@ export function GoalDetailPage({
   }
 
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-[390px] space-y-4 px-4 pb-8 pt-3">
+    <div className="mx-auto min-h-dvh w-full max-w-[390px] space-y-4 px-4 pb-28 pt-3">
       <div className="grid grid-cols-[44px_1fr_64px] items-center gap-2">
         <Button type="button" variant="ghost" className="px-2" onClick={onBack} aria-label="Back">
           <ArrowLeft className="size-4" />
         </Button>
         <h1 className="truncate text-center text-lg font-semibold">
-          {tab === 'items' ? `${goal.name} · items` : `Edit ${goal.name}`}
+          {tab === 'overview'
+            ? goal.name
+            : tab === 'items'
+              ? `${goal.name} · items`
+              : `Edit ${goal.name}`}
         </h1>
         <Button
           type="button"
           variant="ghost"
           className="justify-end px-1"
-          onClick={() => setTab(tab === 'items' ? 'settings' : 'items')}
+          onClick={() => (tab === 'settings' ? showOverview() : setTab('settings'))}
         >
-          {tab === 'items' ? 'Edit' : 'Items'}
+          {tab === 'settings' ? 'Done' : 'Edit'}
         </Button>
       </div>
 
@@ -150,7 +175,17 @@ export function GoalDetailPage({
         </p>
       ) : null}
 
-      {tab === 'items' ? (
+      {tab === 'overview' ? (
+        <FinancialOverview
+          api={api}
+          session={session}
+          goal={goal}
+          onGoalChanged={setGoal}
+          onOpenHistory={onOpenHistory}
+          onOpenItems={showItems}
+          contributionSignal={contributionSignal}
+        />
+      ) : tab === 'items' ? (
         <ItemsPanel
           api={api}
           session={session}
@@ -172,8 +207,18 @@ export function GoalDetailPage({
           onDeleted={onDeleted}
           onSessionExpired={onSessionExpired}
           onMessage={setMessage}
+          onSaved={showOverview}
         />
       )}
+      <MobileNavigation
+        active="goals"
+        onNavigateGoals={onBack}
+        onNavigateSettings={onOpenSettings}
+        onAddContribution={() => {
+          showOverview();
+          setContributionSignal((value) => value + 1);
+        }}
+      />
     </div>
   );
 }
@@ -511,16 +556,18 @@ function ItemsPanel({
         )
       ) : null}
 
-      <Sheet
+      <Drawer
         open={Boolean(editingItem)}
         onOpenChange={(open) => !open && setEditingItem(undefined)}
       >
-        <SheetContent side="bottom">
-          <SheetHeader>
-            <SheetTitle>Edit item</SheetTitle>
-            <SheetDescription>Update the planned amount, month, or display order.</SheetDescription>
-          </SheetHeader>
-          <div className="space-y-4 px-4">
+        <DrawerContent className="mx-auto max-h-[92dvh] max-w-[390px] rounded-t-[22px] border-border bg-raised shadow-sheet">
+          <DrawerHeader>
+            <DrawerTitle>Edit item</DrawerTitle>
+            <DrawerDescription>
+              Update the planned amount, month, or display order.
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="space-y-4 overflow-y-auto px-4">
             <div className="space-y-2">
               <Label htmlFor="edit-item-name">Name</Label>
               <Input
@@ -588,7 +635,7 @@ function ItemsPanel({
               </Button>
             </div>
           </div>
-          <SheetFooter>
+          <DrawerFooter>
             <Button
               type="button"
               disabled={pending || !editName.trim() || !editExpectedPrice.trim()}
@@ -609,9 +656,9 @@ function ItemsPanel({
             >
               Delete item
             </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
       <AlertDialog
         open={Boolean(deleteId)}
@@ -666,6 +713,7 @@ function SettingsPanel({
   onDeleted,
   onSessionExpired,
   onMessage,
+  onSaved,
 }: {
   api: GoalTrackerApi;
   session: AuthSession;
@@ -676,6 +724,7 @@ function SettingsPanel({
   onDeleted: () => void;
   onSessionExpired: () => void;
   onMessage: (message: string) => void;
+  onSaved: () => void;
 }) {
   const designState = import.meta.env.DEV
     ? new URLSearchParams(window.location.search).get('__design')
@@ -772,6 +821,7 @@ function SettingsPanel({
       });
       onChanged(updated);
       onMessage('Changes saved.');
+      onSaved();
       setModeConfirmOpen(false);
       setPreview(undefined);
     } catch (err) {

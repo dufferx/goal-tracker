@@ -56,8 +56,12 @@ export function registerGoalRoutes(
     try {
       const listed = await goalService.list(ownerId);
       return goalListSchema.parse({
-        active: listed.active.map((entry) => toGoalDto(entry.goal, entry.items)),
-        archived: listed.archived.map((entry) => toGoalDto(entry.goal, entry.items)),
+        active: listed.active.map((entry) =>
+          toGoalDto(entry.goal, entry.items, entry.transactions),
+        ),
+        archived: listed.archived.map((entry) =>
+          toGoalDto(entry.goal, entry.items, entry.transactions),
+        ),
       });
     } catch (error) {
       if (error instanceof GoalServiceError) {
@@ -109,7 +113,7 @@ export function registerGoalRoutes(
 
     try {
       const detail = await goalService.get(ownerId, goalId);
-      return toGoalDetailDto(detail.goal, detail.items);
+      return toGoalDetailDto(detail.goal, detail.items, detail.transactions);
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);
@@ -265,7 +269,7 @@ export function registerGoalRoutes(
 
     try {
       const detail = await goalService.get(ownerId, goalId);
-      return detail.items.map(toGoalItemDto);
+      return detail.items.map((item) => toGoalItemDto(item, detail.transactions));
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);

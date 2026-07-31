@@ -39,6 +39,8 @@ const japan: GoalDetail = {
     overallocated: '0.00',
     allocationState: 'unallocated',
     itemCount: 2,
+    financial: { funded: '180.00', spent: '0.00', available: '180.00', remaining: '2820.00' },
+    currencyLocked: true,
   },
   items: [
     {
@@ -50,6 +52,7 @@ const japan: GoalDetail = {
       position: 0,
       createdAt: '2026-07-30T12:00:00.000Z',
       updatedAt: '2026-07-30T12:00:00.000Z',
+      purchase: null,
     },
     {
       id: '22222222-2222-4222-8222-222222222222',
@@ -60,6 +63,7 @@ const japan: GoalDetail = {
       position: 1,
       createdAt: '2026-07-30T12:00:00.000Z',
       updatedAt: '2026-07-30T12:00:00.000Z',
+      purchase: null,
     },
   ],
 };
@@ -74,14 +78,16 @@ const homeGym: GoalDetail = {
   contributionsPerMonth: 1,
   preferredContribution: '100.00',
   derived: {
-    currentTarget: '850.00',
+    currentTarget: '810.00',
     setupIncomplete: false,
-    itemsTotal: '850.00',
+    itemsTotal: '810.00',
     allocated: null,
     unallocated: null,
     overallocated: null,
     allocationState: null,
     itemCount: 2,
+    financial: { funded: '700.00', spent: '560.00', available: '140.00', remaining: '110.00' },
+    currencyLocked: true,
   },
   items: [
     {
@@ -91,6 +97,11 @@ const homeGym: GoalDetail = {
       name: 'Squat rack',
       expectedPrice: '600.00',
       dueMonth: null,
+      purchase: {
+        transactionId: '55555555-5555-4555-8555-555555555555',
+        actualPrice: '560.00',
+        effectiveDate: '2026-07-08',
+      },
     },
     {
       ...japan.items[1]!,
@@ -116,6 +127,8 @@ const incomplete: GoalDetail = {
     overallocated: null,
     allocationState: null,
     itemCount: 0,
+    financial: { funded: '0.00', spent: '0.00', available: '0.00', remaining: null },
+    currencyLocked: false,
   },
   items: [],
 };
@@ -176,6 +189,78 @@ export function createDesignPreviewDependencies(state: string): {
     deleteItem: async () => japan,
     reorderItems: async () => japan.items,
     convertPercent: async () => ({ expectedPrice: '750.00' }),
+    getFinancialHistory: async (_session, goalId) => {
+      const selected = goalId === homeGym.id ? homeGym : japan;
+      return {
+        totals: selected.derived.financial,
+        transactions: [
+          ...(goalId === homeGym.id
+            ? [
+                {
+                  id: '55555555-5555-4555-8555-555555555555',
+                  goalId,
+                  kind: 'purchase' as const,
+                  amount: '560.00',
+                  effectiveDate: '2026-07-08',
+                  itemId: homeGym.items[0]!.id,
+                  itemName: 'Squat rack',
+                  reversesTransactionId: null,
+                  edited: false,
+                  createdAt: '2026-07-08T12:00:00.000Z',
+                  updatedAt: '2026-07-08T12:00:00.000Z',
+                  balanceAfter: { funded: '600.00', spent: '560.00', available: '40.00' },
+                },
+              ]
+            : []),
+          {
+            id: '66666666-6666-4666-8666-666666666666',
+            goalId,
+            kind: 'contribution' as const,
+            amount: '100.00',
+            effectiveDate: '2026-07-14',
+            itemId: null,
+            itemName: null,
+            reversesTransactionId: null,
+            edited: false,
+            createdAt: '2026-07-14T12:00:00.000Z',
+            updatedAt: '2026-07-14T12:00:00.000Z',
+            balanceAfter: {
+              funded: selected.derived.financial.funded,
+              spent: selected.derived.financial.spent,
+              available: selected.derived.financial.available,
+            },
+          },
+          {
+            id: '77777777-7777-4777-8777-777777777777',
+            goalId,
+            kind: 'contribution' as const,
+            amount: '80.00',
+            effectiveDate: '2026-07-02',
+            itemId: null,
+            itemName: null,
+            reversesTransactionId: null,
+            edited: true,
+            createdAt: '2026-07-02T12:00:00.000Z',
+            updatedAt: '2026-07-03T12:00:00.000Z',
+            balanceAfter: { funded: '80.00', spent: '0.00', available: '80.00' },
+          },
+        ],
+      };
+    },
+    createFinancialTransaction: async () => ({
+      totals: japan.derived.financial,
+      transaction: null,
+    }),
+    updateFinancialTransaction: async () => ({
+      totals: japan.derived.financial,
+      transaction: null,
+    }),
+    deleteFinancialTransaction: async () => ({
+      totals: japan.derived.financial,
+      transaction: null,
+    }),
+    purchaseItem: async () => ({ totals: japan.derived.financial, transaction: null }),
+    undoPurchase: async () => ({ totals: japan.derived.financial, transaction: null }),
   };
 
   return { auth, api };

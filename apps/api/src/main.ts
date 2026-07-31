@@ -1,5 +1,6 @@
 import {
   createDatabase,
+  createFinancialRepository,
   createGoalRepository,
   createProfileRepository,
 } from '@goal-tracker/database';
@@ -16,6 +17,7 @@ const server = buildServer({
   deploymentCapabilities: config.deploymentCapabilities,
   profileRepository: createProfileRepository(database.db),
   goalRepository: createGoalRepository(database.db),
+  financialRepository: createFinancialRepository(database.db),
 });
 const port = Number(process.env.API_PORT ?? 3000);
 const host = process.env.API_HOST ?? '127.0.0.1';

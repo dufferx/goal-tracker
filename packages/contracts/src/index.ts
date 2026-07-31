@@ -2,6 +2,26 @@ export { businessMonthDateSchema, businessMonthSchema } from './business-month.j
 export { currencyCodeSchema } from './currency.js';
 export { apiErrorSchema, apiFieldErrorsSchema, type ApiError } from './errors.js';
 export {
+  createFinancialTransactionRequestSchema,
+  effectiveDateSchema,
+  financialHistorySchema,
+  financialKindSchema,
+  financialMutationResponseSchema,
+  financialTotalsSchema,
+  financialTransactionSchema,
+  purchaseItemRequestSchema,
+  undoPurchaseRequestSchema,
+  updateFinancialTransactionRequestSchema,
+  type CreateFinancialTransactionRequest,
+  type FinancialHistory,
+  type FinancialMutationResponse,
+  type FinancialTotals,
+  type FinancialTransaction,
+  type PurchaseItemRequest,
+  type UndoPurchaseRequest,
+  type UpdateFinancialTransactionRequest,
+} from './finance.js';
+export {
   allocationStateSchema,
   contributionsPerMonthSchema,
   convertPercentRequestSchema,

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { businessMonthSchema } from './business-month.js';
 import { currencyCodeSchema } from './currency.js';
 import { moneyDecimalStringSchema, positiveMoneyDecimalStringSchema } from './money.js';
+import { financialTotalsSchema } from './finance.js';
 
 export const targetModeSchema = z.enum(['fixed', 'items']);
 export const goalStatusSchema = z.enum(['active', 'archived']);
@@ -135,6 +136,14 @@ export const goalItemSchema = z
     position: z.number().int().min(0),
     createdAt: z.iso.datetime({ offset: true }),
     updatedAt: z.iso.datetime({ offset: true }),
+    purchase: z
+      .object({
+        transactionId: z.uuid(),
+        actualPrice: moneyDecimalStringSchema,
+        effectiveDate: z.iso.date(),
+      })
+      .strict()
+      .nullable(),
   })
   .strict();
 
@@ -150,6 +159,8 @@ export const goalDerivedSchema = z
     overallocated: moneyDecimalStringSchema.nullable(),
     allocationState: allocationStateSchema.nullable(),
     itemCount: z.number().int().min(0),
+    financial: financialTotalsSchema,
+    currencyLocked: z.boolean(),
   })
   .strict();
 

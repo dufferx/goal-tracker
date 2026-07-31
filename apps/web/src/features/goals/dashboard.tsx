@@ -3,6 +3,7 @@ import { Badge } from '@goal-tracker/ui/components/badge';
 import { Button } from '@goal-tracker/ui/components/button';
 import { Card, CardContent } from '@goal-tracker/ui/components/card';
 import { Skeleton } from '@goal-tracker/ui/components/skeleton';
+import { Progress } from '@goal-tracker/ui/components/progress';
 import { cn } from '@goal-tracker/ui/lib/utils';
 
 import { currencyDisplayName, formatBusinessMonthLabel, formatMoney } from '../../lib/format';
@@ -67,36 +68,64 @@ function GoalCard({
         : `${goal.derived.itemCount} planned items`;
 
   return (
-    <Card>
-      <CardContent className="space-y-3 p-4">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="text-base font-semibold">{goal.name}</h3>
-          <Badge variant="outline" className="text-muted-foreground">
-            {goal.targetMode === 'fixed' ? 'Fixed target' : 'Item target'}
-          </Badge>
-        </div>
-        <p className="text-lg font-semibold leading-snug">{itemFact}</p>
-        <p className="text-sm text-muted-foreground">
-          {windowLabel}
-          {goal.targetMode === 'fixed' && goal.derived.allocationState === 'overallocated'
-            ? ` · Items over-allocate by ${formatMoney(goal.derived.overallocated ?? '0.00', goal.currency)}`
-            : ''}
-        </p>
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="text-muted-foreground">
-            {goal.contributionsPerMonth === 1 ? 'Once a month' : 'Twice a month'}
-          </span>
-          <span data-money className="font-medium">
-            {targetLabel}
-          </span>
-        </div>
-        <div className="flex gap-2 pt-1">
-          <Button type="button" variant="outline" className="flex-1" onClick={onOpen}>
-            View goal
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <button
+      type="button"
+      className="w-full rounded-card text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      onClick={onOpen}
+      aria-label={`Open ${goal.name}`}
+    >
+      <Card className="transition-colors hover:border-primary/50 hover:bg-control/30">
+        <CardContent className="space-y-3 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-base font-semibold">{goal.name}</h3>
+            <Badge variant="outline" className="text-muted-foreground">
+              {goal.targetMode === 'fixed' ? 'Fixed target' : 'Item target'}
+            </Badge>
+          </div>
+          <p className="text-lg font-semibold leading-snug">{itemFact}</p>
+          <p className="text-sm text-muted-foreground">
+            {windowLabel}
+            {goal.targetMode === 'fixed' && goal.derived.allocationState === 'overallocated'
+              ? ` · Items over-allocate by ${formatMoney(goal.derived.overallocated ?? '0.00', goal.currency)}`
+              : ''}
+          </p>
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="text-muted-foreground">
+              {goal.contributionsPerMonth === 1 ? 'Once a month' : 'Twice a month'}
+            </span>
+            <span data-money className="font-medium">
+              {targetLabel}
+            </span>
+          </div>
+          <div className="space-y-2 border-t border-hairline pt-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-text-secondary">Funded</span>
+              <span data-money>{formatMoney(goal.derived.financial.funded, goal.currency)}</span>
+            </div>
+            <Progress
+              value={
+                goal.derived.currentTarget
+                  ? Math.min(
+                      100,
+                      (Number(goal.derived.financial.funded) / Number(goal.derived.currentTarget)) *
+                        100,
+                    )
+                  : 0
+              }
+              aria-label={`${goal.name} funded progress`}
+            />
+            <div className="flex justify-between text-xs text-text-tertiary">
+              <span>{formatMoney(goal.derived.financial.available, goal.currency)} available</span>
+              <span>
+                {goal.derived.financial.remaining == null
+                  ? 'Target pending'
+                  : `${formatMoney(goal.derived.financial.remaining, goal.currency)} remaining`}
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </button>
   );
 }
 
@@ -137,9 +166,11 @@ export function GoalsDashboard({
             </p>
           ) : null}
         </div>
-        <Button type="button" variant="outline" onClick={onCreate}>
-          New goal
-        </Button>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={onCreate}>
+            New goal
+          </Button>
+        </div>
       </div>
 
       {filter === 'archived' || (list?.archived.length ?? 0) > 0 ? (

@@ -1,6 +1,6 @@
 import { Button } from '@goal-tracker/ui/components/button';
 import { cn } from '@goal-tracker/ui/lib/utils';
-import { Diamond, Settings } from 'lucide-react';
+import { Diamond, Plus, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 export function AppShell({
@@ -8,11 +8,13 @@ export function AppShell({
   active,
   onNavigateGoals,
   onNavigateSettings,
+  onAddContribution,
 }: {
   children: ReactNode;
   active: 'goals' | 'settings';
   onNavigateGoals: () => void;
   onNavigateSettings: () => void;
+  onAddContribution?: () => void;
 }) {
   return (
     <div className="min-h-dvh bg-background text-foreground">
@@ -41,35 +43,69 @@ export function AppShell({
         <main className="min-w-0 flex-1">{children}</main>
       </div>
 
-      <nav
-        aria-label="Mobile"
-        className="fixed inset-x-0 bottom-4 z-40 mx-auto grid w-[min(100%-2rem,24rem)] grid-cols-2 items-center rounded-tabbar border border-border bg-raised/95 px-4 py-2 shadow-tabbar backdrop-blur md:hidden"
-      >
-        <Button
-          type="button"
-          variant="ghost"
-          className={cn(
-            'min-h-12 flex-col gap-1 px-3 text-xs',
-            active === 'goals' ? 'text-primary' : 'text-muted-foreground',
-          )}
-          onClick={onNavigateGoals}
-        >
-          <Diamond className="size-4" aria-hidden />
-          Goals
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          className={cn(
-            'min-h-12 flex-col gap-1 px-3 text-xs',
-            active === 'settings' ? 'text-primary' : 'text-muted-foreground',
-          )}
-          onClick={onNavigateSettings}
-        >
-          <Settings className="size-4" aria-hidden />
-          Settings
-        </Button>
-      </nav>
+      <MobileNavigation
+        active={active}
+        onNavigateGoals={onNavigateGoals}
+        onNavigateSettings={onNavigateSettings}
+        onAddContribution={onAddContribution}
+      />
     </div>
+  );
+}
+
+export function MobileNavigation({
+  active,
+  onNavigateGoals,
+  onNavigateSettings,
+  onAddContribution,
+}: {
+  active: 'goals' | 'settings';
+  onNavigateGoals: () => void;
+  onNavigateSettings: () => void;
+  onAddContribution?: () => void;
+}) {
+  return (
+    <nav
+      aria-label="Mobile"
+      className={cn(
+        'fixed inset-x-0 bottom-4 z-40 mx-auto grid w-[min(100%-2rem,24rem)] items-center rounded-tabbar border border-border bg-raised/95 px-3 py-2 shadow-tabbar backdrop-blur md:hidden',
+        onAddContribution ? 'grid-cols-[1fr_auto_1fr]' : 'grid-cols-2',
+      )}
+    >
+      <Button
+        type="button"
+        variant="ghost"
+        className={cn(
+          'min-h-12 flex-col gap-1 px-3 text-xs',
+          active === 'goals' ? 'text-primary' : 'text-muted-foreground',
+        )}
+        onClick={onNavigateGoals}
+      >
+        <Diamond className="size-4" aria-hidden />
+        Goals
+      </Button>
+      {onAddContribution ? (
+        <Button
+          type="button"
+          className="size-14 shrink-0 rounded-full p-0 shadow-sheet"
+          onClick={onAddContribution}
+          aria-label="Add contribution"
+        >
+          <Plus className="size-6" aria-hidden />
+        </Button>
+      ) : null}
+      <Button
+        type="button"
+        variant="ghost"
+        className={cn(
+          'min-h-12 flex-col gap-1 px-3 text-xs',
+          active === 'settings' ? 'text-primary' : 'text-muted-foreground',
+        )}
+        onClick={onNavigateSettings}
+      >
+        <Settings className="size-4" aria-hidden />
+        Settings
+      </Button>
+    </nav>
   );
 }

@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:m1:integration": "vitest run src/m1-supabase.integration.test.ts",
     "test:m2:integration": "vitest run src/m2-supabase.integration.test.ts",
+    "test:m3:integration": "vitest run src/m3-supabase.integration.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

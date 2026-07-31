@@ -6,14 +6,35 @@ import {
   type GoalDetail,
   type GoalItem,
 } from '@goal-tracker/contracts';
-import { calculateTarget, serializeMoney, toDisplayMonth } from '@goal-tracker/domain';
-import type { GoalItemRecord, GoalRecord } from '@goal-tracker/database';
+import {
+  calculateTarget,
+  replayLedger,
+  serializeMoney,
+  toDisplayMonth,
+} from '@goal-tracker/domain';
+import type {
+  FinancialTransactionRecord,
+  GoalItemRecord,
+  GoalRecord,
+} from '@goal-tracker/database';
 
-export function toGoalDto(goal: GoalRecord, items: GoalItemRecord[]): Goal {
+function replay(transactions: FinancialTransactionRecord[]) {
+  return replayLedger(transactions.map((row) => ({ ...row })));
+}
+
+export function toGoalDto(
+  goal: GoalRecord,
+  items: GoalItemRecord[],
+  transactions: FinancialTransactionRecord[] = [],
+): Goal {
+  const ledger = replay(transactions);
   const derived = calculateTarget({
     targetMode: goal.targetMode,
     fixedTargetMinor: goal.fixedTargetMinor,
-    items: items.map((item) => ({ expectedPriceMinor: item.expectedPriceMinor })),
+    items: items.map((item) => ({
+      expectedPriceMinor: item.expectedPriceMinor,
+      actualPriceMinor: ledger.activePurchases.get(item.id)?.amountMinor,
+    })),
   });
 
   return goalSchema.parse({
@@ -45,11 +66,29 @@ export function toGoalDto(goal: GoalRecord, items: GoalItemRecord[]): Goal {
         derived.overallocatedMinor == null ? null : serializeMoney(derived.overallocatedMinor),
       allocationState: derived.allocationState,
       itemCount: items.length,
+      financial: {
+        funded: serializeMoney(ledger.totals.fundedMinor),
+        spent: serializeMoney(ledger.totals.spentMinor),
+        available: serializeMoney(ledger.totals.availableMinor),
+        remaining:
+          derived.currentTargetMinor == null
+            ? null
+            : serializeMoney(
+                derived.currentTargetMinor > ledger.totals.fundedMinor
+                  ? derived.currentTargetMinor - ledger.totals.fundedMinor
+                  : 0n,
+              ),
+      },
+      currencyLocked: transactions.length > 0,
     },
   });
 }
 
-export function toGoalItemDto(item: GoalItemRecord): GoalItem {
+export function toGoalItemDto(
+  item: GoalItemRecord,
+  transactions: FinancialTransactionRecord[] = [],
+): GoalItem {
+  const purchase = replay(transactions).activePurchases.get(item.id);
   return goalItemSchema.parse({
     id: item.id,
     goalId: item.goalId,
@@ -59,12 +98,23 @@ export function toGoalItemDto(item: GoalItemRecord): GoalItem {
     position: item.position,
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
+    purchase: purchase
+      ? {
+          transactionId: purchase.id,
+          actualPrice: serializeMoney(purchase.amountMinor),
+          effectiveDate: purchase.effectiveDate,
+        }
+      : null,
   });
 }
 
-export function toGoalDetailDto(goal: GoalRecord, items: GoalItemRecord[]): GoalDetail {
+export function toGoalDetailDto(
+  goal: GoalRecord,
+  items: GoalItemRecord[],
+  transactions: FinancialTransactionRecord[] = [],
+): GoalDetail {
   return goalDetailSchema.parse({
-    ...toGoalDto(goal, items),
-    items: items.map(toGoalItemDto),
+    ...toGoalDto(goal, items, transactions),
+    items: items.map((item) => toGoalItemDto(item, transactions)),
   });
 }

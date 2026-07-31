@@ -22,6 +22,18 @@ export {
 } from './money.js';
 
 export {
+  LedgerError,
+  compareLedgerTransactions,
+  replayLedger,
+  type FinancialKind,
+  type LedgerBalance,
+  type LedgerErrorCode,
+  type LedgerReplay,
+  type LedgerTransaction,
+  type ReplayedTransaction,
+} from './ledger.js';
+
+export {
   groupDueMonths,
   previewPlanningChange,
   reorderPositions,
