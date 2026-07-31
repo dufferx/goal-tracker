@@ -56,6 +56,34 @@ export function compareBusinessMonths(a: BusinessMonth, b: BusinessMonth): numbe
   return 0;
 }
 
+/** Shift a business month by a signed number of calendar months. */
+export function addBusinessMonths(month: BusinessMonth, count: number): BusinessMonth {
+  if (!Number.isInteger(count)) {
+    throw new BusinessMonthError('count must be an integer number of months.');
+  }
+  const parsed = parseBusinessMonth(month);
+  const year = Number(parsed.slice(0, 4));
+  const monthNumber = Number(parsed.slice(5, 7));
+  const total = year * 12 + (monthNumber - 1) + count;
+  if (total < 0) {
+    throw new BusinessMonthError('month shift is out of range.');
+  }
+  return formatBusinessMonth(Math.floor(total / 12), (total % 12) + 1);
+}
+
+/**
+ * Signed calendar months from `from` to `to`; negative when `to` precedes
+ * `from`. Zero when both are the same month.
+ */
+export function diffBusinessMonths(from: BusinessMonth, to: BusinessMonth): number {
+  const start = parseBusinessMonth(from);
+  const end = parseBusinessMonth(to);
+  return (
+    (Number(end.slice(0, 4)) - Number(start.slice(0, 4))) * 12 +
+    (Number(end.slice(5, 7)) - Number(start.slice(5, 7)))
+  );
+}
+
 export function isBusinessMonthWithinRange(
   month: BusinessMonth,
   startMonth: BusinessMonth,

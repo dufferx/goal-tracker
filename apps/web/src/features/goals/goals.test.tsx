@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../app';
 import { ApiRequestError, type GoalTrackerApi } from '../../lib/api';
 import type { AuthGateway, AuthSession } from '../../lib/auth';
+import { guidanceFixture, simulationReportFixture } from '../../test/fixtures';
 
 const session: AuthSession = { accessToken: 'access-token', email: 'alex@example.com' };
 const profile = {
@@ -42,6 +43,12 @@ const incompleteGoal = {
     currencyLocked: false,
   },
   items: [],
+  guidance: guidanceFixture({
+    target: null,
+    remaining: null,
+    setupIncomplete: true,
+    explanation: { code: 'setup_incomplete' },
+  }),
 } as GoalDetail;
 
 function authMock(): AuthGateway {
@@ -86,6 +93,7 @@ function apiMock(overrides: Partial<GoalTrackerApi> = {}): GoalTrackerApi {
     deleteFinancialTransaction: vi.fn(),
     purchaseItem: vi.fn(),
     undoPurchase: vi.fn(),
+    simulate: vi.fn().mockResolvedValue(simulationReportFixture()),
     ...overrides,
   };
 }

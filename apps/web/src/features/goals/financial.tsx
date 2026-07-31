@@ -36,10 +36,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { MoneyInput } from '../../components/money-input';
 import { ApiRequestError, type GoalTrackerApi } from '../../lib/api';
 import type { AuthSession } from '../../lib/auth';
-import { formatMoney, formatMoneyInput, normalizeMoneyInput } from '../../lib/format';
+import {
+  formatBusinessMonthLabel,
+  formatMoney,
+  formatMoneyInput,
+  normalizeMoneyInput,
+} from '../../lib/format';
+import { GuidanceCard } from './guidance-card';
+import { PlanningTimeline } from './planning-timeline';
 
 const today = () => new Date().toISOString().slice(0, 10);
-const amountNumber = (value: string | null) => Number(value ?? 0);
+const amountNumber = (value: string | null) => Number((value ?? '0').replace(/,/g, ''));
 
 function dateFromIso(value: string) {
   const [year, month, day] = value.split('-').map(Number);
@@ -417,6 +424,8 @@ export function FinancialOverview({
   onGoalChanged,
   onOpenHistory,
   onOpenItems,
+  onOpenSimulator,
+  onEditGoal,
   contributionSignal,
 }: {
   api: GoalTrackerApi;
@@ -425,6 +434,8 @@ export function FinancialOverview({
   onGoalChanged: (goal: GoalDetail) => void;
   onOpenHistory: () => void;
   onOpenItems: () => void;
+  onOpenSimulator: () => void;
+  onEditGoal: () => void;
   contributionSignal?: number;
 }) {
   const designState = import.meta.env.DEV
@@ -505,21 +516,19 @@ export function FinancialOverview({
           {goal.targetMode === 'fixed' ? 'Fixed target' : 'Item-derived target'} · {goal.currency}
         </p>
       </div>
-      {goal.status === 'active' ? (
-        <div className="grid grid-cols-[1fr_auto] gap-2">
-          <Button className="min-h-12" onClick={() => setContribute(true)}>
-            + Add contribution
-          </Button>
-          <Button variant="outline" className="min-h-12" onClick={() => setContribute(true)}>
-            Other amount
-          </Button>
-        </div>
-      ) : (
+      {goal.status !== 'active' ? (
         <Alert>
           <AlertTitle>Archived goal</AlertTitle>
           <AlertDescription>Restore it before recording money.</AlertDescription>
         </Alert>
-      )}
+      ) : null}
+      <GuidanceCard
+        goal={goal}
+        onAddContribution={() => setContribute(true)}
+        onEditGoal={onEditGoal}
+        onOpenItems={onOpenItems}
+        embedded
+      />
       <Card>
         <CardContent className="space-y-4 p-4">
           <div className="flex items-end justify-between gap-3">
@@ -537,21 +546,58 @@ export function FinancialOverview({
             </span>
           </div>
           <Progress value={progress} aria-label={`${Math.round(progress)}% funded`} />
-          <div className="grid grid-cols-3 gap-3 border-t border-hairline pt-4">
-            <Metric
-              label="Available"
-              value={goal.derived.financial.available}
-              currency={goal.currency}
-            />
-            <Metric label="Spent" value={goal.derived.financial.spent} currency={goal.currency} />
-            <Metric
-              label="Remaining"
-              value={goal.derived.financial.remaining}
-              currency={goal.currency}
-            />
-          </div>
+          <p className="text-sm text-text-secondary">
+            {formatMoney(goal.derived.financial.available, goal.currency)} available
+            <span className="float-right">
+              {formatMoney(goal.derived.financial.spent, goal.currency)} spent ·{' '}
+              {goal.derived.financial.remaining
+                ? formatMoney(goal.derived.financial.remaining, goal.currency)
+                : '—'}{' '}
+              remaining
+            </span>
+          </p>
+          {goal.guidance.recommendation ? (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4 border-t border-hairline pt-4">
+              <Metric
+                label="Per contribution"
+                value={goal.guidance.recommendation.perContribution}
+                currency={goal.currency}
+                accent
+              />
+              <Metric
+                label="Monthly"
+                value={goal.guidance.recommendation.monthly}
+                currency={goal.currency}
+              />
+              <Metric
+                label="Next obligation"
+                value={
+                  goal.guidance.obligation
+                    ? formatBusinessMonthLabel(goal.guidance.obligation.dueMonth)
+                    : goal.guidance.forecastMonth
+                      ? formatBusinessMonthLabel(goal.guidance.forecastMonth)
+                      : null
+                }
+              />
+              <Metric
+                label={goal.finalMonth ? 'Final month' : 'Forecast finish'}
+                value={
+                  goal.finalMonth
+                    ? formatBusinessMonthLabel(goal.finalMonth)
+                    : goal.guidance.forecastMonth
+                      ? formatBusinessMonthLabel(goal.guidance.forecastMonth)
+                      : null
+                }
+              />
+            </div>
+          ) : null}
+          <p className="border-t border-hairline pt-3 text-xs text-text-tertiary">
+            {goal.targetMode === 'fixed' ? 'Fixed target' : 'Item-derived target'} · planning from{' '}
+            {formatBusinessMonthLabel(goal.startMonth)}
+          </p>
         </CardContent>
       </Card>
+      <PlanningTimeline goal={goal} onOpenItems={onOpenItems} />
       <Card>
         <CardContent className="p-0">
           <div className="flex items-center justify-between gap-3 px-4 py-3">
@@ -625,6 +671,19 @@ export function FinancialOverview({
           <HistoryRows rows={history?.transactions.slice(0, 3) ?? []} currency={goal.currency} />
         </CardContent>
       </Card>
+      <Button
+        variant="outline"
+        className="h-auto min-h-16 w-full justify-between px-4 py-3 text-left"
+        onClick={onOpenSimulator}
+      >
+        <span>
+          <span className="block font-semibold">Try a contribution plan</span>
+          <span className="mt-1 block text-sm text-text-secondary">
+            Preview different amounts without changing this goal.
+          </span>
+        </span>
+        <span className="text-sm font-semibold text-primary">Simulator</span>
+      </Button>
       <ContributionDrawer
         open={contribute}
         onOpenChange={setContribute}
@@ -688,16 +747,18 @@ function Metric({
   label,
   value,
   currency,
+  accent = false,
 }: {
   label: string;
   value: string | null;
-  currency: string;
+  currency?: string;
+  accent?: boolean;
 }) {
   return (
     <div className="min-w-0">
       <p className="text-xs text-text-secondary">{label}</p>
-      <p className="mt-1 truncate font-semibold" data-money>
-        {value == null ? '—' : formatMoney(value, currency)}
+      <p className={`mt-1 truncate font-semibold ${accent ? 'text-primary' : ''}`} data-money>
+        {value == null ? '—' : currency ? formatMoney(value, currency) : value}
       </p>
     </div>
   );

@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BusinessMonthError,
+  addBusinessMonths,
   assertDueMonthAllowed,
   assertMonthRange,
   compareBusinessMonths,
+  diffBusinessMonths,
   parseBusinessMonth,
   toDisplayMonth,
 } from './business-month.js';
@@ -85,5 +87,35 @@ describe('planning month ranges', () => {
     ['2025-12', '2026-01', null],
   ])('rejects due month %s outside %s through %s', (due, start, final) => {
     expect(() => assertDueMonthAllowed(due, start, final)).toThrow(BusinessMonthError);
+  });
+});
+
+describe('addBusinessMonths', () => {
+  it.each([
+    ['2026-01-01', 0, '2026-01-01'],
+    ['2026-01-01', 1, '2026-02-01'],
+    ['2026-11-01', 2, '2027-01-01'],
+    ['2026-12-01', 1, '2027-01-01'],
+    ['2027-01-01', -1, '2026-12-01'],
+    ['2026-06-01', -6, '2025-12-01'],
+    ['2026-07-01', 14, '2027-09-01'],
+  ])('shifts %s by %i months to %s', (month, count, expected) => {
+    expect(addBusinessMonths(month, count)).toBe(expected);
+  });
+
+  it('rejects fractional shifts', () => {
+    expect(() => addBusinessMonths('2026-01-01', 1.5)).toThrow(BusinessMonthError);
+  });
+});
+
+describe('diffBusinessMonths', () => {
+  it.each([
+    ['2026-01-01', '2026-01-01', 0],
+    ['2026-01-01', '2026-03-01', 2],
+    ['2026-11-01', '2027-02-01', 3],
+    ['2027-02-01', '2026-11-01', -3],
+    ['2026-07-01', '2026-08-01', 1],
+  ])('counts %i months from %s to %s', (from, to, expected) => {
+    expect(diffBusinessMonths(from, to)).toBe(expected);
   });
 });

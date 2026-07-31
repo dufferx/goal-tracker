@@ -8,3 +8,7 @@ export const moneyDecimalStringSchema = z
 export const positiveMoneyDecimalStringSchema = z
   .string()
   .regex(/^(?!0+(?:\.0+)?$)\d+(\.\d{1,2})?$/, 'Amount must be a positive decimal value.');
+
+export const nonNegativeMoneyDecimalStringSchema = z
+  .string()
+  .regex(/^\d+(\.\d{1,2})?$/, 'Amount must be zero or a positive decimal value.');

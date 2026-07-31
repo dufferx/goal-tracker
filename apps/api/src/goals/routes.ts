@@ -16,19 +16,16 @@ import type { FastifyInstance } from 'fastify';
 
 import type { AuthVerifier } from '../auth.js';
 import { requireOwnerId } from '../auth-guard.js';
-import { apiError } from '../errors.js';
+import { apiError, zodFieldErrors } from '../errors.js';
+import { buildGuidanceDto } from '../guidance/serialize.js';
 import { toGoalDetailDto, toGoalDto, toGoalItemDto } from './serialize.js';
 import { GoalServiceError, type GoalService } from './service.js';
-
-function zodFieldErrors(error: {
-  flatten: () => { fieldErrors: Record<string, string[] | undefined> };
-}): Record<string, string[]> {
-  return Object.fromEntries(
-    Object.entries(error.flatten().fieldErrors).filter(
-      (entry): entry is [string, string[]] => entry[1] !== undefined,
-    ),
-  );
-}
+import type {
+  FinancialTransactionRecord,
+  GoalItemRecord,
+  GoalRecord,
+} from '@goal-tracker/database';
+import type { BusinessMonth } from '@goal-tracker/domain';
 
 function sendServiceError(
   reply: { code: (status: number) => { send: (body: unknown) => unknown } },
@@ -45,9 +42,23 @@ export function registerGoalRoutes(
   dependencies: {
     authVerifier: AuthVerifier;
     goalService: GoalService;
+    currentMonth: () => BusinessMonth;
   },
 ) {
-  const { authVerifier, goalService } = dependencies;
+  const { authVerifier, goalService, currentMonth } = dependencies;
+
+  function detailDto(result: {
+    goal: GoalRecord;
+    items: GoalItemRecord[];
+    transactions: FinancialTransactionRecord[];
+  }) {
+    return toGoalDetailDto(
+      result.goal,
+      result.items,
+      result.transactions,
+      buildGuidanceDto(result.goal, result.items, result.transactions, currentMonth()),
+    );
+  }
 
   server.get('/api/v1/goals', async (request, reply) => {
     const ownerId = await requireOwnerId(request, reply, authVerifier);
@@ -94,7 +105,7 @@ export function registerGoalRoutes(
 
     try {
       const created = await goalService.create(ownerId, parsed.data);
-      return reply.code(201).send(toGoalDetailDto(created.goal, created.items));
+      return reply.code(201).send(detailDto({ ...created, transactions: [] }));
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);
@@ -113,7 +124,7 @@ export function registerGoalRoutes(
 
     try {
       const detail = await goalService.get(ownerId, goalId);
-      return toGoalDetailDto(detail.goal, detail.items, detail.transactions);
+      return detailDto(detail);
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);
@@ -146,7 +157,7 @@ export function registerGoalRoutes(
 
     try {
       const updated = await goalService.update(ownerId, goalId, parsed.data);
-      return toGoalDetailDto(updated.goal, updated.items, updated.transactions);
+      return detailDto(updated);
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);
@@ -198,7 +209,7 @@ export function registerGoalRoutes(
 
     try {
       const archived = await goalService.archive(ownerId, goalId);
-      return toGoalDetailDto(archived.goal, archived.items, archived.transactions);
+      return detailDto(archived);
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);
@@ -217,7 +228,7 @@ export function registerGoalRoutes(
 
     try {
       const restored = await goalService.restore(ownerId, goalId);
-      return toGoalDetailDto(restored.goal, restored.items, restored.transactions);
+      return detailDto(restored);
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);
@@ -302,13 +313,7 @@ export function registerGoalRoutes(
 
     try {
       const created = await goalService.createItem(ownerId, goalId, parsed.data);
-      return reply
-        .code(201)
-        .send(
-          goalDetailSchema.parse(
-            toGoalDetailDto(created.goal, created.items, created.transactions),
-          ),
-        );
+      return reply.code(201).send(goalDetailSchema.parse(detailDto(created)));
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);
@@ -341,7 +346,7 @@ export function registerGoalRoutes(
 
     try {
       const updated = await goalService.updateItem(ownerId, goalId, itemId, parsed.data);
-      return toGoalDetailDto(updated.goal, updated.items, updated.transactions);
+      return detailDto(updated);
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);
@@ -360,7 +365,7 @@ export function registerGoalRoutes(
 
     try {
       const deleted = await goalService.deleteItem(ownerId, goalId, itemId);
-      return toGoalDetailDto(deleted.goal, deleted.items, deleted.transactions);
+      return detailDto(deleted);
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);

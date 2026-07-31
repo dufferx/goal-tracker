@@ -63,6 +63,7 @@ export function GoalDetailPage({
   onOpenOverview,
   onOpenItems,
   onOpenHistory,
+  onOpenSimulator,
   onOpenSettings,
   onDeleted,
   onSessionExpired,
@@ -75,6 +76,7 @@ export function GoalDetailPage({
   onOpenOverview: () => void;
   onOpenItems: () => void;
   onOpenHistory: () => void;
+  onOpenSimulator: () => void;
   onOpenSettings: () => void;
   onDeleted: () => void;
   onSessionExpired: () => void;
@@ -189,6 +191,8 @@ export function GoalDetailPage({
           onGoalChanged={setGoal}
           onOpenHistory={onOpenHistory}
           onOpenItems={showItems}
+          onOpenSimulator={onOpenSimulator}
+          onEditGoal={() => setTab('settings')}
           contributionSignal={contributionSignal}
         />
       ) : tab === 'items' ? (
