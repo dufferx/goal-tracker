@@ -117,6 +117,12 @@ export function GoalDetailPage({
     void load();
   }, [goalId, session.accessToken]);
 
+  // Keep the visible tab in sync with the route (back arrow, browser
+  // back/forward) — the same component instance serves both detail routes.
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -668,7 +674,7 @@ function ItemsPanel({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this item?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes the planned item from the goal. There is no undo in M2.
+              This removes the planned item from the goal. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

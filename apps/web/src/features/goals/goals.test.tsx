@@ -228,6 +228,10 @@ describe('M2 goals web flows', () => {
     expect(await screen.findByRole('heading', { name: 'Japan Trip · items' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add an item' })).toBeInTheDocument();
     expect(window.location.pathname).toBe(`/goals/${detail.id}/items`);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(await screen.findByRole('heading', { name: 'Japan Trip' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe(`/goals/${detail.id}`);
   });
 
   it('opens the contribution drawer from an item route and canonicalizes the detail URL', async () => {

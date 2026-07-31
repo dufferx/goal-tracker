@@ -60,6 +60,9 @@ const unavailableGoalRepository: GoalRepository = {
   async update() {
     throw new Error('Goal repository is not configured.');
   },
+  async updateLocked() {
+    throw new Error('Goal repository is not configured.');
+  },
   async permanentlyDelete() {
     throw new Error('Goal repository is not configured.');
   },

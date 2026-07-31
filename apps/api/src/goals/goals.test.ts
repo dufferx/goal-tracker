@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthVerifier } from '../auth.js';
 import { buildServer } from '../server.js';
-import type { GoalItemRecord, GoalRecord, GoalRepository } from '@goal-tracker/database';
+import type {
+  GoalItemRecord,
+  GoalRecord,
+  GoalRepository,
+  UpdateGoalRecordInput,
+} from '@goal-tracker/database';
 
 const ownerA = '11111111-1111-4111-8111-111111111111';
 const ownerB = '22222222-2222-4222-8222-222222222222';
@@ -58,6 +63,13 @@ function goalRepository(overrides: Partial<GoalRepository> = {}): GoalRepository
     items: [item()] as GoalItemRecord[],
   };
 
+  function applyGoalUpdate(entry: GoalRecord, update: UpdateGoalRecordInput): GoalRecord {
+    const defined = Object.fromEntries(
+      Object.entries(update).filter(([, value]) => value !== undefined),
+    );
+    return { ...entry, ...defined, updatedAt: new Date() };
+  }
+
   return {
     async listByOwner(ownerId) {
       return store.goals.filter((entry) => entry.ownerId === ownerId);
@@ -100,7 +112,14 @@ function goalRepository(overrides: Partial<GoalRepository> = {}): GoalRepository
     async update(ownerId, id, update) {
       const index = store.goals.findIndex((entry) => entry.ownerId === ownerId && entry.id === id);
       if (index < 0) return undefined;
-      store.goals[index] = { ...store.goals[index]!, ...update, updatedAt: new Date() };
+      store.goals[index] = applyGoalUpdate(store.goals[index]!, update);
+      return store.goals[index];
+    },
+    async updateLocked(ownerId, id, update, guard) {
+      const index = store.goals.findIndex((entry) => entry.ownerId === ownerId && entry.id === id);
+      if (index < 0) return undefined;
+      guard?.({ goal: store.goals[index]!, transactionCount: 0 });
+      store.goals[index] = applyGoalUpdate(store.goals[index]!, update);
       return store.goals[index];
     },
     async permanentlyDelete(ownerId, id) {
@@ -135,7 +154,8 @@ function goalRepository(overrides: Partial<GoalRepository> = {}): GoalRepository
       store.items[index] = { ...store.items[index]!, ...update, updatedAt: new Date() };
       return store.items[index];
     },
-    async deleteItem(ownerId, id, currentItemId) {
+    async deleteItem(ownerId, id, currentItemId, guard) {
+      guard?.([]);
       const before = store.items.length;
       store.items = store.items.filter(
         (entry) =>
@@ -475,5 +495,185 @@ describe('M2 goals API', () => {
       code: 'VALIDATION_ERROR',
       requestId: expect.any(String),
     });
+  });
+
+  it('keeps an already overallocated fixed goal editable without a new decision', async () => {
+    const overallocated = goalRepository({
+      async findByOwnerAndId() {
+        return goal({ fixedTargetMinor: 100000n });
+      },
+      async listItemsByOwnerAndGoal() {
+        return [item({ expectedPriceMinor: 110000n })];
+      },
+    });
+    const server = buildServer({
+      authVerifier: authVerifier(),
+      goalRepository: overallocated,
+    });
+    servers.push(server);
+
+    const renamed = await server.inject({
+      method: 'PATCH',
+      url: `/api/v1/goals/${goalId}`,
+      headers: { authorization: 'Bearer valid' },
+      payload: { name: 'Renamed trip' },
+    });
+    expect(renamed.statusCode).toBe(200);
+    expect(renamed.json().name).toBe('Renamed trip');
+    expect(renamed.json().fixedTarget).toBe('1000.00');
+    expect(renamed.json().derived.allocationState).toBe('overallocated');
+
+    const preview = await server.inject({
+      method: 'POST',
+      url: `/api/v1/goals/${goalId}/planning-preview`,
+      headers: { authorization: 'Bearer valid' },
+      payload: { name: 'Another name' },
+    });
+    expect(preview.statusCode).toBe(200);
+    expect(preview.json().requiresOverageDecision).toBe(false);
+
+    const lowered = await server.inject({
+      method: 'PATCH',
+      url: `/api/v1/goals/${goalId}`,
+      headers: { authorization: 'Bearer valid' },
+      payload: { fixedTarget: '900.00' },
+    });
+    expect(lowered.statusCode).toBe(400);
+    expect(lowered.json().error.message).toMatch(/keep_target|increase_target/i);
+  });
+
+  it('returns real financials and currency lock in mutation responses', async () => {
+    const contribution = {
+      id: '77777777-7777-4777-8777-777777777777',
+      ownerId: ownerA,
+      goalId,
+      kind: 'contribution' as const,
+      amountMinor: 60000n,
+      effectiveDate: '2026-07-30',
+      itemId: null,
+      reversesTransactionId: null,
+      createdAt: new Date('2026-07-30T12:00:00.000Z'),
+      updatedAt: new Date('2026-07-30T12:00:00.000Z'),
+    };
+    const server = buildServer({
+      authVerifier: authVerifier(),
+      goalRepository: goalRepository(),
+      financialRepository: {
+        async findSnapshot(ownerId, id) {
+          if (ownerId !== ownerA || id !== goalId) return undefined;
+          return { goal: goal(), items: [item()], transactions: [contribution] };
+        },
+        async runLockedMutation() {
+          throw new Error('Not used by goal mutations.');
+        },
+      },
+    });
+    servers.push(server);
+
+    const renamed = await server.inject({
+      method: 'PATCH',
+      url: `/api/v1/goals/${goalId}`,
+      headers: { authorization: 'Bearer valid' },
+      payload: { name: 'Renamed trip' },
+    });
+    expect(renamed.statusCode).toBe(200);
+    expect(renamed.json().derived.financial).toMatchObject({
+      funded: '600.00',
+      spent: '0.00',
+      available: '600.00',
+    });
+    expect(renamed.json().derived.currencyLocked).toBe(true);
+
+    const archived = await server.inject({
+      method: 'POST',
+      url: `/api/v1/goals/${goalId}/archive`,
+      headers: { authorization: 'Bearer valid' },
+    });
+    expect(archived.statusCode).toBe(200);
+    expect(archived.json().derived.financial.funded).toBe('600.00');
+    expect(archived.json().derived.currencyLocked).toBe(true);
+  });
+
+  it('locks the currency after the first financial transaction', async () => {
+    const locked = goalRepository({
+      async updateLocked(_ownerId, _id, _update, guard) {
+        guard?.({ goal: goal(), transactionCount: 1 });
+        return goal();
+      },
+    });
+    const server = buildServer({ authVerifier: authVerifier(), goalRepository: locked });
+    servers.push(server);
+
+    const rejected = await server.inject({
+      method: 'PATCH',
+      url: `/api/v1/goals/${goalId}`,
+      headers: { authorization: 'Bearer valid' },
+      payload: { currency: 'EUR' },
+    });
+    expect(rejected.statusCode).toBe(409);
+    expect(rejected.json().error.code).toBe('CURRENCY_LOCKED');
+
+    const unlockedServer = buildServer({
+      authVerifier: authVerifier(),
+      goalRepository: goalRepository(),
+    });
+    servers.push(unlockedServer);
+    const allowed = await unlockedServer.inject({
+      method: 'PATCH',
+      url: `/api/v1/goals/${goalId}`,
+      headers: { authorization: 'Bearer valid' },
+      payload: { currency: 'EUR' },
+    });
+    expect(allowed.statusCode).toBe(200);
+    expect(allowed.json().currency).toBe('EUR');
+  });
+
+  it('deletes an item once its purchase is fully undone and blocks active purchases', async () => {
+    const purchase = {
+      id: '88888888-8888-4888-8888-888888888888',
+      kind: 'purchase' as const,
+      reversesTransactionId: null,
+    };
+    const undo = {
+      id: '99999999-9999-4999-8999-999999999999',
+      kind: 'purchase_undo' as const,
+      reversesTransactionId: purchase.id,
+    };
+    const withLedger = (references: Array<typeof purchase | typeof undo>) =>
+      goalRepository({
+        async listItemsByOwnerAndGoal() {
+          return [];
+        },
+        async deleteItem(_ownerId, _id, _currentItemId, guard) {
+          guard?.(references);
+          return true;
+        },
+      });
+
+    const undoneServer = buildServer({
+      authVerifier: authVerifier(),
+      goalRepository: withLedger([purchase, undo]),
+    });
+    servers.push(undoneServer);
+    const deleted = await undoneServer.inject({
+      method: 'DELETE',
+      url: `/api/v1/goals/${goalId}/items/${itemId}`,
+      headers: { authorization: 'Bearer valid' },
+    });
+    expect(deleted.statusCode).toBe(200);
+    expect(deleted.json().items.map((entry: { id: string }) => entry.id)).not.toContain(itemId);
+
+    const activeServer = buildServer({
+      authVerifier: authVerifier(),
+      goalRepository: withLedger([purchase]),
+    });
+    servers.push(activeServer);
+    const blocked = await activeServer.inject({
+      method: 'DELETE',
+      url: `/api/v1/goals/${goalId}/items/${itemId}`,
+      headers: { authorization: 'Bearer valid' },
+    });
+    expect(blocked.statusCode).toBe(409);
+    expect(blocked.json().error.code).toBe('PURCHASED_ITEM_DELETE_BLOCKED');
   });
 });

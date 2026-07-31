@@ -53,7 +53,9 @@ integration('M2 goals/items migration, constraints, and RLS', () => {
     const itemA = crypto.randomUUID();
     const itemB = crypto.randomUUID();
 
-    const createdGoal = await user.client
+    // Seeds run through the service role: authenticated clients cannot write
+    // application tables directly, but constraints and triggers still apply.
+    const createdGoal = await admin
       .from('goals')
       .insert({
         id: goalId,
@@ -74,7 +76,7 @@ integration('M2 goals/items migration, constraints, and RLS', () => {
     expect(createdGoal.error).toBeNull();
     expect(createdGoal.data?.start_month).toBe('2026-07-01');
 
-    const itemsModeWithoutTarget = await user.client.from('goals').insert({
+    const itemsModeWithoutTarget = await admin.from('goals').insert({
       id: crypto.randomUUID(),
       owner_id: user.userId,
       name: 'Bad fixed',
@@ -87,7 +89,7 @@ integration('M2 goals/items migration, constraints, and RLS', () => {
     });
     expect(itemsModeWithoutTarget.error?.message).toMatch(/goals_fixed_target_mode_check/);
 
-    const createdItems = await user.client
+    const createdItems = await admin
       .from('goal_items')
       .insert([
         {
@@ -114,7 +116,7 @@ integration('M2 goals/items migration, constraints, and RLS', () => {
     expect(createdItems.error).toBeNull();
     expect(createdItems.data?.map((row) => row.position)).toEqual([0, 1]);
 
-    const earlyDue = await user.client.from('goal_items').insert({
+    const earlyDue = await admin.from('goal_items').insert({
       id: crypto.randomUUID(),
       owner_id: user.userId,
       goal_id: goalId,
@@ -125,7 +127,7 @@ integration('M2 goals/items migration, constraints, and RLS', () => {
     });
     expect(earlyDue.error?.message).toMatch(/due_month cannot precede/i);
 
-    const deleted = await user.client.from('goals').delete().eq('id', goalId);
+    const deleted = await admin.from('goals').delete().eq('id', goalId);
     expect(deleted.error).toBeNull();
     const remainingItems = await user.client.from('goal_items').select('id').eq('goal_id', goalId);
     expect(remainingItems.error).toBeNull();
@@ -138,7 +140,7 @@ integration('M2 goals/items migration, constraints, and RLS', () => {
     const goalId = crypto.randomUUID();
     const itemId = crypto.randomUUID();
 
-    const insertGoal = await userA.client.from('goals').insert({
+    const insertGoal = await admin.from('goals').insert({
       id: goalId,
       owner_id: userA.userId,
       name: 'Home Gym',
@@ -151,7 +153,7 @@ integration('M2 goals/items migration, constraints, and RLS', () => {
     });
     expect(insertGoal.error).toBeNull();
 
-    const insertItem = await userA.client.from('goal_items').insert({
+    const insertItem = await admin.from('goal_items').insert({
       id: itemId,
       owner_id: userA.userId,
       goal_id: goalId,
@@ -185,12 +187,18 @@ integration('M2 goals/items migration, constraints, and RLS', () => {
       contributions_per_month: 1,
       status: 'active',
     });
+    // Even the owner cannot write directly: mutations only flow through the API.
+    const ownerDirectWrite = await userA.client
+      .from('goals')
+      .update({ name: 'Direct' })
+      .eq('id', goalId);
 
     expect(foreignGoalRead.data).toEqual([]);
     expect(foreignItemRead.data).toEqual([]);
-    expect(foreignGoalUpdate.data).toEqual([]);
-    expect(foreignItemDelete.data).toEqual([]);
+    expect(foreignGoalUpdate.error).not.toBeNull();
+    expect(foreignItemDelete.error).not.toBeNull();
     expect(forgedInsert.error).not.toBeNull();
+    expect(ownerDirectWrite.error).not.toBeNull();
 
     const anonymous = createClient(url, publicKey, {
       auth: { autoRefreshToken: false, persistSession: false },
@@ -206,7 +214,7 @@ integration('M2 goals/items migration, constraints, and RLS', () => {
     const userB = await createUser();
     const goalId = crypto.randomUUID();
 
-    const goal = await userA.client.from('goals').insert({
+    const goal = await admin.from('goals').insert({
       id: goalId,
       owner_id: userA.userId,
       name: 'Owned by A',
