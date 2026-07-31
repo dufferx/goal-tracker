@@ -304,7 +304,11 @@ export function registerGoalRoutes(
       const created = await goalService.createItem(ownerId, goalId, parsed.data);
       return reply
         .code(201)
-        .send(goalDetailSchema.parse(toGoalDetailDto(created.goal, created.items, created.transactions)));
+        .send(
+          goalDetailSchema.parse(
+            toGoalDetailDto(created.goal, created.items, created.transactions),
+          ),
+        );
     } catch (error) {
       if (error instanceof GoalServiceError) {
         return sendServiceError(reply, request.id, error);

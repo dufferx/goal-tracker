@@ -166,9 +166,7 @@ function goalUpdateSet(update: UpdateGoalRecordInput) {
     ...(update.description !== undefined ? { description: update.description } : {}),
     ...(update.currency !== undefined ? { currency: update.currency } : {}),
     ...(update.targetMode !== undefined ? { targetMode: update.targetMode } : {}),
-    ...(update.fixedTargetMinor !== undefined
-      ? { fixedTargetMinor: update.fixedTargetMinor }
-      : {}),
+    ...(update.fixedTargetMinor !== undefined ? { fixedTargetMinor: update.fixedTargetMinor } : {}),
     ...(update.startMonth !== undefined ? { startMonth: update.startMonth } : {}),
     ...(update.finalMonth !== undefined ? { finalMonth: update.finalMonth } : {}),
     ...(update.contributionsPerMonth !== undefined

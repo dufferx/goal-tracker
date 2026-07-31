@@ -313,15 +313,20 @@ export function createGoalService(
         // count checked inside the same transaction, so a concurrent
         // financial mutation cannot slip between the check and the write.
         const updated = currencyChange
-          ? await goalRepository.updateLocked(ownerId, goalId, updateInput, ({ transactionCount }) => {
-              if (transactionCount > 0) {
-                throw new GoalServiceError(
-                  'CURRENCY_LOCKED',
-                  'Currency cannot change after the first financial transaction.',
-                  409,
-                );
-              }
-            })
+          ? await goalRepository.updateLocked(
+              ownerId,
+              goalId,
+              updateInput,
+              ({ transactionCount }) => {
+                if (transactionCount > 0) {
+                  throw new GoalServiceError(
+                    'CURRENCY_LOCKED',
+                    'Currency cannot change after the first financial transaction.',
+                    409,
+                  );
+                }
+              },
+            )
           : await goalRepository.update(ownerId, goalId, updateInput);
 
         if (!updated) {
