@@ -1,6 +1,14 @@
 import { Alert, AlertDescription, AlertTitle } from '@goal-tracker/ui/components/alert';
 import { Button } from '@goal-tracker/ui/components/button';
 import { Card, CardContent } from '@goal-tracker/ui/components/card';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@goal-tracker/ui/components/drawer';
 import { Input } from '@goal-tracker/ui/components/input';
 import { Label } from '@goal-tracker/ui/components/label';
 import {
@@ -14,6 +22,7 @@ import { Skeleton } from '@goal-tracker/ui/components/skeleton';
 import { ArrowLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import type {
   DeploymentCapabilities,
+  GoalDetail,
   Profile,
   UpdateProfileRequest,
 } from '@goal-tracker/contracts';
@@ -24,6 +33,7 @@ import { AuthShell, PageHeader } from './components/auth-shell';
 import { GoalsDashboard } from './features/goals/dashboard';
 import { GoalCreatePage } from './features/goals/goal-create';
 import { GoalDetailPage } from './features/goals/goal-detail';
+import { ContributionDrawer, FinancialHistoryPage } from './features/goals/financial';
 import { OnboardingWelcome } from './features/goals/onboarding';
 import { ApiRequestError, type GoalTrackerApi } from './lib/api';
 import type { AuthGateway, AuthSession } from './lib/auth';
@@ -43,6 +53,7 @@ type Route =
   | 'goals'
   | 'goal-create'
   | 'goal-detail'
+  | 'goal-history'
   | 'goal-items';
 
 function currentRoute(): Route {
@@ -53,6 +64,8 @@ function currentRoute(): Route {
   if (path === '/settings') return 'settings';
   if (path === '/goals/new') return 'goal-create';
   if (path === '/goals') return 'goals';
+  const historyMatch = /^\/goals\/([^/]+)\/history$/.exec(path);
+  if (historyMatch) return 'goal-history';
   const itemsMatch = /^\/goals\/([^/]+)\/items$/.exec(path);
   if (itemsMatch) return 'goal-items';
   const detailMatch = /^\/goals\/([^/]+)$/.exec(path);
@@ -75,6 +88,7 @@ function navigate(route: Route, goalId?: string) {
     goals: '/goals',
     'goal-create': '/goals/new',
     'goal-detail': goalId ? `/goals/${goalId}` : '/goals',
+    'goal-history': goalId ? `/goals/${goalId}/history` : '/goals',
     'goal-items': goalId ? `/goals/${goalId}/items` : '/goals',
   };
   window.history.pushState({}, '', paths[route]);
@@ -542,6 +556,8 @@ function GoalsHome({
   onCreate,
   onOpenGoal,
   onOpenItems,
+  onNavigateGoals,
+  onNavigateSettings,
 }: {
   api: GoalTrackerApi;
   session: AuthSession;
@@ -549,6 +565,8 @@ function GoalsHome({
   onCreate: () => void;
   onOpenGoal: (goalId: string) => void;
   onOpenItems: (goalId: string) => void;
+  onNavigateGoals: () => void;
+  onNavigateSettings: () => void;
 }) {
   const [list, setList] = useState<GoalList>();
   const [loading, setLoading] = useState(true);
@@ -560,6 +578,19 @@ function GoalsHome({
       : 'active',
   );
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [selectedGoalId, setSelectedGoalId] = useState('');
+  const [contributionGoal, setContributionGoal] = useState<GoalDetail>();
+
+  async function openContribution() {
+    const active = list?.active ?? [];
+    if (active.length === 1) {
+      setContributionGoal(await api.getGoal(session, active[0]!.id));
+      return;
+    }
+    setSelectedGoalId(active[0]?.id ?? '');
+    setPickerOpen(true);
+  }
 
   async function load() {
     setLoading(true);
@@ -584,21 +615,85 @@ function GoalsHome({
   }, [session.accessToken]);
 
   if (showOnboarding && !loading && !error) {
-    return <OnboardingWelcome onCreate={onCreate} onBrowse={() => setShowOnboarding(false)} />;
+    return (
+      <AppShell
+        active="goals"
+        onNavigateGoals={onNavigateGoals}
+        onNavigateSettings={onNavigateSettings}
+      >
+        <OnboardingWelcome onCreate={onCreate} onBrowse={() => setShowOnboarding(false)} />
+      </AppShell>
+    );
   }
 
   return (
-    <GoalsDashboard
-      list={list}
-      loading={loading}
-      error={error}
-      filter={filter}
-      onFilterChange={setFilter}
-      onRetry={() => void load()}
-      onCreate={onCreate}
-      onOpenGoal={onOpenGoal}
-      onOpenItems={onOpenItems}
-    />
+    <AppShell
+      active="goals"
+      onNavigateGoals={onNavigateGoals}
+      onNavigateSettings={onNavigateSettings}
+      {...((list?.active.length ?? 0) > 0
+        ? { onAddContribution: () => void openContribution() }
+        : {})}
+    >
+      <GoalsDashboard
+        list={list}
+        loading={loading}
+        error={error}
+        filter={filter}
+        onFilterChange={setFilter}
+        onRetry={() => void load()}
+        onCreate={onCreate}
+        onOpenGoal={onOpenGoal}
+        onOpenItems={onOpenItems}
+      />
+      <Drawer open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DrawerContent className="mx-auto max-w-[390px] rounded-t-[22px] border-border bg-raised shadow-sheet">
+          <DrawerHeader>
+            <DrawerTitle>Add contribution</DrawerTitle>
+            <DrawerDescription>Choose the goal that receives this money.</DrawerDescription>
+          </DrawerHeader>
+          <div className="px-4">
+            <Select value={selectedGoalId} onValueChange={setSelectedGoalId}>
+              <SelectTrigger aria-label="Goal">
+                <SelectValue placeholder="Choose a goal" />
+              </SelectTrigger>
+              <SelectContent>
+                {list?.active.map((goal) => (
+                  <SelectItem key={goal.id} value={goal.id}>
+                    {goal.name} · {goal.currency}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DrawerFooter>
+            <Button
+              disabled={!selectedGoalId}
+              onClick={() =>
+                void api.getGoal(session, selectedGoalId).then((goal) => {
+                  setContributionGoal(goal);
+                  setPickerOpen(false);
+                })
+              }
+            >
+              Continue
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+      {contributionGoal ? (
+        <ContributionDrawer
+          open
+          api={api}
+          session={session}
+          goal={contributionGoal}
+          onOpenChange={(open) => !open && setContributionGoal(undefined)}
+          onReconciled={async () => {
+            await load();
+          }}
+        />
+      ) : null}
+    </AppShell>
   );
 }
 
@@ -916,29 +1011,41 @@ function AuthenticatedApp({
         api={api}
         session={session}
         goalId={goalId}
-        initialTab={route === 'goal-items' ? 'items' : 'settings'}
+        initialTab={route === 'goal-items' ? 'items' : 'overview'}
         onBack={() => navigate('goals')}
+        onOpenOverview={() => navigate('goal-detail', goalId)}
+        onOpenItems={() => navigate('goal-items', goalId)}
+        onOpenHistory={() => navigate('goal-history', goalId)}
+        onOpenSettings={() => navigate('settings')}
         onDeleted={() => navigate('goals')}
         onSessionExpired={onSessionExpired}
       />
     );
   }
 
-  return (
-    <AppShell
-      active="goals"
-      onNavigateGoals={() => navigate('goals')}
-      onNavigateSettings={() => navigate('settings')}
-    >
-      <GoalsHome
+  if (route === 'goal-history' && goalId) {
+    return (
+      <FinancialHistoryPage
         api={api}
         session={session}
-        onSessionExpired={onSessionExpired}
-        onCreate={() => navigate('goal-create')}
-        onOpenGoal={(id) => navigate('goal-items', id)}
-        onOpenItems={(id) => navigate('goal-items', id)}
+        goalId={goalId}
+        onBack={() => navigate('goal-detail', goalId)}
+        onChanged={() => undefined}
       />
-    </AppShell>
+    );
+  }
+
+  return (
+    <GoalsHome
+      api={api}
+      session={session}
+      onSessionExpired={onSessionExpired}
+      onCreate={() => navigate('goal-create')}
+      onOpenGoal={(id) => navigate('goal-detail', id)}
+      onOpenItems={(id) => navigate('goal-items', id)}
+      onNavigateGoals={() => navigate('goals')}
+      onNavigateSettings={() => navigate('settings')}
+    />
   );
 }
 
@@ -993,6 +1100,7 @@ export function App({ auth, api }: { auth: AuthGateway; api: GoalTrackerApi }) {
           currentRoute() === 'goals' ||
           currentRoute() === 'goal-create' ||
           currentRoute() === 'goal-detail' ||
+          currentRoute() === 'goal-history' ||
           currentRoute() === 'goal-items')
       ) {
         navigate('sign-in');

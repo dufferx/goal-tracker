@@ -4,6 +4,15 @@ import { Pool } from 'pg';
 import * as schema from './schema.js';
 
 export { createGoalRepository } from './goal-repository.js';
+export {
+  createFinancialRepository,
+  newFinancialTransactionId,
+  type FinancialPersistenceCommand,
+  type FinancialRepository,
+  type FinancialSnapshot,
+  type FinancialTransactionKind,
+  type FinancialTransactionRecord,
+} from './financial-repository.js';
 export type {
   CreateGoalRecordInput,
   GoalItemRecord,

@@ -8,7 +8,12 @@ import type {
   UpdateGoalItemRequest,
   UpdateGoalRequest,
 } from '@goal-tracker/contracts';
-import type { GoalItemRecord, GoalRecord, GoalRepository } from '@goal-tracker/database';
+import type {
+  FinancialRepository,
+  GoalItemRecord,
+  GoalRecord,
+  GoalRepository,
+} from '@goal-tracker/database';
 import {
   BusinessMonthError,
   MoneyError,
@@ -19,6 +24,7 @@ import {
   percentageOfFixedTarget,
   previewPlanningChange,
   resolveFixedOverage,
+  replayLedger,
   serializeMoney,
   validateGoalPlanning,
 } from '@goal-tracker/domain';
@@ -75,7 +81,10 @@ function toCanonicalMonth(value: string | null | undefined): string | null {
   return parseBusinessMonth(value);
 }
 
-export function createGoalService(goalRepository: GoalRepository) {
+export function createGoalService(
+  goalRepository: GoalRepository,
+  financialRepository?: FinancialRepository,
+) {
   async function requireGoal(ownerId: string, goalId: string): Promise<GoalRecord> {
     const goal = await goalRepository.findByOwnerAndId(ownerId, goalId);
     if (!goal) {
@@ -96,14 +105,42 @@ export function createGoalService(goalRepository: GoalRepository) {
     return goal;
   }
 
+  async function itemsWithActivePurchasePrices(
+    ownerId: string,
+    goalId: string,
+    items: GoalItemRecord[],
+  ): Promise<GoalItemRecord[]> {
+    const active = await activePurchaseAmounts(ownerId, goalId);
+    if (active.size === 0) return items;
+    return items.map((item) => ({
+      ...item,
+      expectedPriceMinor: active.get(item.id) ?? item.expectedPriceMinor,
+    }));
+  }
+
+  async function activePurchaseAmounts(ownerId: string, goalId: string) {
+    const snapshot = await financialRepository?.findSnapshot(ownerId, goalId);
+    if (!snapshot || snapshot.transactions.length === 0) return new Map<string, bigint>();
+    return new Map(
+      [...replayLedger(snapshot.transactions.map((row) => ({ ...row }))).activePurchases].map(
+        ([itemId, purchase]) => [itemId, purchase.amountMinor],
+      ),
+    );
+  }
+
   return {
     async list(ownerId: string) {
       const goals = await goalRepository.listByOwner(ownerId);
       const withItems = await Promise.all(
-        goals.map(async (goal) => ({
-          goal,
-          items: await goalRepository.listItemsByOwnerAndGoal(ownerId, goal.id),
-        })),
+        goals.map(async (goal) => {
+          const snapshot = await financialRepository?.findSnapshot(ownerId, goal.id);
+          return {
+            goal,
+            items:
+              snapshot?.items ?? (await goalRepository.listItemsByOwnerAndGoal(ownerId, goal.id)),
+            transactions: snapshot?.transactions ?? [],
+          };
+        }),
       );
       return {
         active: withItems.filter((entry) => entry.goal.status === 'active'),
@@ -113,8 +150,10 @@ export function createGoalService(goalRepository: GoalRepository) {
 
     async get(ownerId: string, goalId: string) {
       const goal = await requireGoal(ownerId, goalId);
-      const items = await goalRepository.listItemsByOwnerAndGoal(ownerId, goalId);
-      return { goal, items };
+      const snapshot = await financialRepository?.findSnapshot(ownerId, goalId);
+      const items =
+        snapshot?.items ?? (await goalRepository.listItemsByOwnerAndGoal(ownerId, goalId));
+      return { goal, items, transactions: snapshot?.transactions ?? [] };
     },
 
     async create(ownerId: string, request: CreateGoalRequest) {
@@ -173,6 +212,18 @@ export function createGoalService(goalRepository: GoalRepository) {
       try {
         const goal = await requireActiveGoal(ownerId, goalId);
         const items = await goalRepository.listItemsByOwnerAndGoal(ownerId, goalId);
+        const targetItems = await itemsWithActivePurchasePrices(ownerId, goalId, items);
+
+        if (request.currency && request.currency !== goal.currency && financialRepository) {
+          const snapshot = await financialRepository.findSnapshot(ownerId, goalId);
+          if (snapshot && snapshot.transactions.length > 0) {
+            throw new GoalServiceError(
+              'CURRENCY_LOCKED',
+              'Currency cannot change after the first financial transaction.',
+              409,
+            );
+          }
+        }
 
         const nextMode = request.targetMode ?? goal.targetMode;
         const nextFixed =
@@ -205,7 +256,7 @@ export function createGoalService(goalRepository: GoalRepository) {
             request.preferredContribution !== undefined
               ? parseOptionalMoney(request.preferredContribution, 'preferredContribution')
               : goal.preferredContributionMinor,
-          items,
+          items: targetItems,
         });
 
         let fixedTargetMinor = validated.fixedTargetMinor;
@@ -382,12 +433,14 @@ export function createGoalService(goalRepository: GoalRepository) {
       try {
         const goal = await requireActiveGoal(ownerId, goalId);
         const items = await goalRepository.listItemsByOwnerAndGoal(ownerId, goalId);
+        const targetItems = await itemsWithActivePurchasePrices(ownerId, goalId, items);
         const expectedPriceMinor = parseMoneyString(request.expectedPrice, 'expectedPrice');
         const dueMonth = assertDueMonthAllowed(request.dueMonth, goal.startMonth, goal.finalMonth);
 
         if (goal.targetMode === 'fixed' && goal.fixedTargetMinor != null) {
           const itemsTotal =
-            items.reduce((sum, item) => sum + item.expectedPriceMinor, 0n) + expectedPriceMinor;
+            targetItems.reduce((sum, item) => sum + item.expectedPriceMinor, 0n) +
+            expectedPriceMinor;
           const resolution = resolveFixedOverage({
             fixedTargetMinor: goal.fixedTargetMinor,
             itemsTotalMinor: itemsTotal,
@@ -426,6 +479,8 @@ export function createGoalService(goalRepository: GoalRepository) {
       try {
         const goal = await requireActiveGoal(ownerId, goalId);
         const items = await goalRepository.listItemsByOwnerAndGoal(ownerId, goalId);
+        const targetItems = await itemsWithActivePurchasePrices(ownerId, goalId, items);
+        const activePurchasePrices = await activePurchaseAmounts(ownerId, goalId);
         const current = items.find((item) => item.id === itemId);
         if (!current) {
           throw new GoalServiceError('ITEM_NOT_FOUND', 'Goal item not found.', 404);
@@ -441,9 +496,12 @@ export function createGoalService(goalRepository: GoalRepository) {
             : current.dueMonth;
 
         if (goal.targetMode === 'fixed' && goal.fixedTargetMinor != null) {
-          const itemsTotal = items.reduce(
+          const itemsTotal = targetItems.reduce(
             (sum, item) =>
-              sum + (item.id === itemId ? expectedPriceMinor : item.expectedPriceMinor),
+              sum +
+              (item.id === itemId && !activePurchasePrices.has(itemId)
+                ? expectedPriceMinor
+                : item.expectedPriceMinor),
             0n,
           );
           const resolution = resolveFixedOverage({
@@ -479,6 +537,21 @@ export function createGoalService(goalRepository: GoalRepository) {
 
     async deleteItem(ownerId: string, goalId: string, itemId: string) {
       await requireActiveGoal(ownerId, goalId);
+      if (financialRepository) {
+        const snapshot = await financialRepository.findSnapshot(ownerId, goalId);
+        if (snapshot) {
+          const active = replayLedger(
+            snapshot.transactions.map((row) => ({ ...row })),
+          ).activePurchases;
+          if (active.has(itemId)) {
+            throw new GoalServiceError(
+              'PURCHASED_ITEM_DELETE_BLOCKED',
+              'Undo this item’s purchase before deleting it.',
+              409,
+            );
+          }
+        }
+      }
       const deleted = await goalRepository.deleteItem(ownerId, goalId, itemId);
       if (!deleted) {
         throw new GoalServiceError('ITEM_NOT_FOUND', 'Goal item not found.', 404);

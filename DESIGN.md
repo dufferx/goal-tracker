@@ -71,7 +71,8 @@ Do not start from a generic page skeleton and attempt to style it later.
   and the shadcn/ui registry. Install the applicable primitive into `packages/ui` when it is not
   already present.
 - Never hand-roll Button, Input, Label, Form, Select, RadioGroup, Checkbox, Switch, Card, Badge,
-  Alert, Skeleton, Separator, Dialog, AlertDialog, Drawer, Sheet, Popover, Tooltip, DropdownMenu,
+  Alert, Skeleton, Separator, Dialog, AlertDialog, Drawer, Sheet, Popover, Calendar, Date Picker,
+  Tooltip, DropdownMenu,
   Table, or ScrollArea replacements.
 - “The reference looks slightly different” is not a reason to replace a shadcn primitive. Apply
   Graphite tokens, variants, and composition to the primitive.
@@ -134,7 +135,7 @@ The handoff must include:
 - [ ] Touch targets are at least 44px.
 - [ ] Only one filled mint primary action appears in a decision context.
 - [ ] Destructive actions use confirmation and appropriate danger styling.
-- [ ] Mobile contextual actions use Drawer or Sheet; desktop uses Dialog where documented.
+- [ ] Mobile contextual actions prefer Drawer; Sheet requires an explicit reference exception.
 
 ### Content
 

@@ -15,6 +15,12 @@ import {
 
 export const goalTargetModeEnum = pgEnum('goal_target_mode', ['fixed', 'items']);
 export const goalStatusEnum = pgEnum('goal_status', ['active', 'archived']);
+export const financialTransactionKindEnum = pgEnum('financial_transaction_kind', [
+  'contribution',
+  'withdrawal',
+  'purchase',
+  'purchase_undo',
+]);
 
 export const profiles = pgTable(
   'profiles',
@@ -97,4 +103,21 @@ export const goalItems = pgTable(
     check('goal_items_expected_price_positive_check', sql`${table.expectedPriceMinor} > 0`),
     check('goal_items_position_nonnegative_check', sql`${table.position} >= 0`),
   ],
+);
+
+export const financialTransactions = pgTable(
+  'financial_transactions',
+  {
+    id: uuid('id').primaryKey(),
+    ownerId: uuid('owner_id').notNull(),
+    goalId: uuid('goal_id').notNull(),
+    kind: financialTransactionKindEnum('kind').notNull(),
+    amountMinor: bigint('amount_minor', { mode: 'bigint' }).notNull(),
+    effectiveDate: date('effective_date', { mode: 'string' }).notNull(),
+    itemId: uuid('item_id'),
+    reversesTransactionId: uuid('reverses_transaction_id'),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+  },
+  (table) => [check('financial_transactions_amount_positive_check', sql`${table.amountMinor} > 0`)],
 );

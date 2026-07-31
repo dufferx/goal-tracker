@@ -12,6 +12,9 @@ import {
   type CreateGoalRequest,
   type DeleteGoalRequest,
   type DeploymentCapabilities,
+  type CreateFinancialTransactionRequest,
+  type FinancialHistory,
+  type FinancialMutationResponse,
   type GoalDetail,
   type GoalItem,
   type GoalList,
@@ -22,6 +25,11 @@ import {
   type UpdateGoalItemRequest,
   type UpdateGoalRequest,
   type UpdateProfileRequest,
+  type UpdateFinancialTransactionRequest,
+  type PurchaseItemRequest,
+  type UndoPurchaseRequest,
+  financialHistorySchema,
+  financialMutationResponseSchema,
 } from '@goal-tracker/contracts';
 
 import type { AuthSession } from './auth';
@@ -63,6 +71,39 @@ export interface GoalTrackerApi {
     session: AuthSession,
     input: ConvertPercentRequest,
   ): Promise<{ expectedPrice: string }>;
+  getFinancialHistory(
+    session: AuthSession,
+    goalId: string,
+    filters?: { kind?: string; month?: string },
+  ): Promise<FinancialHistory>;
+  createFinancialTransaction(
+    session: AuthSession,
+    goalId: string,
+    input: CreateFinancialTransactionRequest,
+  ): Promise<FinancialMutationResponse>;
+  updateFinancialTransaction(
+    session: AuthSession,
+    goalId: string,
+    transactionId: string,
+    input: UpdateFinancialTransactionRequest,
+  ): Promise<FinancialMutationResponse>;
+  deleteFinancialTransaction(
+    session: AuthSession,
+    goalId: string,
+    transactionId: string,
+  ): Promise<FinancialMutationResponse>;
+  purchaseItem(
+    session: AuthSession,
+    goalId: string,
+    itemId: string,
+    input: PurchaseItemRequest,
+  ): Promise<FinancialMutationResponse>;
+  undoPurchase(
+    session: AuthSession,
+    goalId: string,
+    purchaseId: string,
+    input: UndoPurchaseRequest,
+  ): Promise<FinancialMutationResponse>;
 }
 
 export class ApiRequestError extends Error {
@@ -223,6 +264,60 @@ export function createGoalTrackerApi(baseUrl: string): GoalTrackerApi {
     async convertPercent(session, input) {
       return convertPercentResponseSchema.parse(
         await request('/api/v1/money/convert-percent', {
+          method: 'POST',
+          headers: authenticatedHeaders(session),
+          body: JSON.stringify(input),
+        }),
+      );
+    },
+    async getFinancialHistory(session, goalId, filters) {
+      const query = new URLSearchParams();
+      if (filters?.kind) query.set('kind', filters.kind);
+      if (filters?.month) query.set('month', filters.month);
+      return financialHistorySchema.parse(
+        await request(`/api/v1/goals/${goalId}/transactions${query.size ? `?${query}` : ''}`, {
+          headers: authenticatedHeaders(session),
+        }),
+      );
+    },
+    async createFinancialTransaction(session, goalId, input) {
+      return financialMutationResponseSchema.parse(
+        await request(`/api/v1/goals/${goalId}/transactions`, {
+          method: 'POST',
+          headers: authenticatedHeaders(session),
+          body: JSON.stringify(input),
+        }),
+      );
+    },
+    async updateFinancialTransaction(session, goalId, transactionId, input) {
+      return financialMutationResponseSchema.parse(
+        await request(`/api/v1/goals/${goalId}/transactions/${transactionId}`, {
+          method: 'PATCH',
+          headers: authenticatedHeaders(session),
+          body: JSON.stringify(input),
+        }),
+      );
+    },
+    async deleteFinancialTransaction(session, goalId, transactionId) {
+      return financialMutationResponseSchema.parse(
+        await request(`/api/v1/goals/${goalId}/transactions/${transactionId}`, {
+          method: 'DELETE',
+          headers: authenticatedHeaders(session),
+        }),
+      );
+    },
+    async purchaseItem(session, goalId, itemId, input) {
+      return financialMutationResponseSchema.parse(
+        await request(`/api/v1/goals/${goalId}/items/${itemId}/purchase`, {
+          method: 'POST',
+          headers: authenticatedHeaders(session),
+          body: JSON.stringify(input),
+        }),
+      );
+    },
+    async undoPurchase(session, goalId, purchaseId, input) {
+      return financialMutationResponseSchema.parse(
+        await request(`/api/v1/goals/${goalId}/transactions/${purchaseId}/undo`, {
           method: 'POST',
           headers: authenticatedHeaders(session),
           body: JSON.stringify(input),

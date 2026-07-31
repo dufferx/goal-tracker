@@ -36,6 +36,7 @@ from the immutable design references:
 
 - [M1 implementation captures](implementation/m1/)
 - [M2 implementation captures](implementation/m2/)
+- [M3 implementation captures and comparison notes](implementation/m3/)
 - [M2.1 surface and state matrix](M2_1_Surface_Matrix.md)
 
 These captures are evidence for comparison, not a new design source. A milestone is not visually
@@ -74,7 +75,7 @@ complete when this evidence is missing or stale.
 | --- | --- | --- |
 | [Goal financial detail](reference/m3/goal-financial-detail.png) | G-01 | totals, progress, timeline, history |
 | [Financial history](reference/m3/financial-history.png) | G-03 | filters, balances, corrections |
-| [Add contribution](reference/m3/add-contribution.png) | F-01 | fast-path money sheet |
+| [Add contribution](reference/m3/add-contribution.png) | F-01 | fast-path money drawer |
 | [Result and withdrawal](reference/m3/contribution-result-withdrawal.png) | F-02 | success, failure, withdrawal |
 | [Purchase and undo](reference/m3/purchase-undo.png) | F-04 | actual price, insufficient funds, undo |
 | [Transaction correction](reference/m3/transaction-correction.png) | F-06 | edit, delete, replay rejection |

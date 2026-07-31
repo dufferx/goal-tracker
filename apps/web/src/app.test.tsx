@@ -52,6 +52,15 @@ function apiMock(overrides: Partial<GoalTrackerApi> = {}): GoalTrackerApi {
     deleteItem: vi.fn(),
     reorderItems: vi.fn(),
     convertPercent: vi.fn(),
+    getFinancialHistory: vi.fn().mockResolvedValue({
+      totals: { funded: '0.00', spent: '0.00', available: '0.00', remaining: null },
+      transactions: [],
+    }),
+    createFinancialTransaction: vi.fn(),
+    updateFinancialTransaction: vi.fn(),
+    deleteFinancialTransaction: vi.fn(),
+    purchaseItem: vi.fn(),
+    undoPurchase: vi.fn(),
     ...overrides,
   };
 }

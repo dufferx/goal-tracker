@@ -27,7 +27,7 @@ composition. Shared CSS remains authoritative for token values.
 | page | `#000000` | browser/board background |
 | canvas | `#0B0C0D` | application background |
 | surface | `#121416` | cards |
-| raised | `#17191C` | sheets, dialogs, raised panels |
+| raised | `#17191C` | drawers, dialogs, raised panels |
 | control | `#1F2326` | inputs and secondary controls |
 | border | `#24282C` | standard boundaries |
 | border strong | `#2A2F33` | selected/raised boundaries |
@@ -91,7 +91,7 @@ Fonts are supplied through the shared UI package. Do not replace them per screen
 - Inner panel radius: 12px.
 - Card radius: 16px.
 - Tab bar radius: 20px.
-- Sheet/dialog radius: 22px.
+- Drawer/dialog radius: 22px.
 - Pill radius: 999px.
 - Touch targets: at least 44px; primary mobile controls target 48px.
 - Mobile content gutter: 16px, expanding to 22px in focused forms.
@@ -102,7 +102,7 @@ Fonts are supplied through the shared UI package. Do not replace them per screen
 Cards, inputs, and ordinary buttons have no decorative shadow. Use shadows only to communicate
 elevation:
 
-- sheet: `0 -10px 34px rgb(0 0 0 / 50%)`;
+- drawer: `0 -10px 34px rgb(0 0 0 / 50%)`;
 - dialog: `0 24px 60px rgb(0 0 0 / 60%)`;
 - floating tab bar: `0 8px 28px rgb(0 0 0 / 45%)`.
 
@@ -140,7 +140,7 @@ Never hand-roll replacements for:
 
 - Button, Input, Label, Form, Select, RadioGroup, Checkbox, Switch;
 - Card, Badge, Alert, Skeleton, Separator;
-- Dialog, AlertDialog, Drawer, Sheet, Popover, Tooltip, DropdownMenu;
+- Dialog, AlertDialog, Drawer, Sheet, Popover, Calendar, Date Picker, Tooltip, DropdownMenu;
 - Table and ScrollArea.
 
 Do not install every primitive during D1. Each milestone adds only what it uses.
@@ -199,7 +199,8 @@ logic.
 
 ### Overlays
 
-- Mobile contextual forms: Drawer or Sheet according to comfortable height.
+- Mobile contextual forms prefer Drawer. Use Sheet only when a future approved reference explicitly
+  requires a lateral panel.
 - Desktop equivalent: approximately 480px Dialog.
 - Decisions and destructive actions: Dialog/AlertDialog.
 - Focus is trapped, Escape behavior is correct, and focus returns to the trigger.

@@ -4,7 +4,7 @@ import * as React from 'react';
 
 import { cn } from '../lib/utils.js';
 
-const buttonVariants = cva(
+export const buttonVariants = cva(
   'inline-flex min-h-11 items-center justify-center gap-2 rounded-control text-sm font-semibold ' +
     'transition-colors duration-[var(--gt-duration-state)] focus-visible:outline-none ' +
     'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ' +
@@ -18,9 +18,14 @@ const buttonVariants = cva(
         ghost: 'px-3 py-2 text-primary hover:bg-accent',
         danger: 'bg-destructive px-4 py-2 text-primary-foreground hover:bg-destructive/90',
       },
+      size: {
+        default: '',
+        icon: 'size-8 min-h-0 p-0',
+      },
     },
     defaultVariants: {
       variant: 'default',
+      size: 'default',
     },
   },
 );
@@ -30,8 +35,17 @@ export interface ButtonProps
   asChild?: boolean;
 }
 
-export function Button({ asChild = false, className, variant, ...props }: ButtonProps) {
-  const Component = asChild ? Slot : 'button';
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ asChild = false, className, variant, size, ...props }, ref) => {
+    const Component = asChild ? Slot : 'button';
 
-  return <Component className={cn(buttonVariants({ variant }), className)} {...props} />;
-}
+    return (
+      <Component
+        ref={ref}
+        className={cn(buttonVariants({ variant, size }), className)}
+        {...props}
+      />
+    );
+  },
+);
+Button.displayName = 'Button';

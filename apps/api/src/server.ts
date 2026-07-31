@@ -4,7 +4,12 @@ import {
   updateProfileRequestSchema,
 } from '@goal-tracker/contracts';
 import type { DeploymentCapabilities, Profile } from '@goal-tracker/contracts';
-import type { GoalRepository, ProfileRecord, ProfileRepository } from '@goal-tracker/database';
+import type {
+  FinancialRepository,
+  GoalRepository,
+  ProfileRecord,
+  ProfileRepository,
+} from '@goal-tracker/database';
 import Fastify from 'fastify';
 
 import type { AuthVerifier } from './auth.js';
@@ -12,6 +17,8 @@ import { requireOwnerId } from './auth-guard.js';
 import { apiError } from './errors.js';
 import { registerGoalRoutes } from './goals/routes.js';
 import { createGoalService } from './goals/service.js';
+import { registerFinancialRoutes } from './finance/routes.js';
+import { createFinancialService } from './finance/service.js';
 
 export interface ServerDependencies {
   allowedWebOrigin?: string;
@@ -19,6 +26,7 @@ export interface ServerDependencies {
   deploymentCapabilities?: DeploymentCapabilities;
   profileRepository?: ProfileRepository;
   goalRepository?: GoalRepository;
+  financialRepository?: FinancialRepository;
 }
 
 const unavailableAuthVerifier: AuthVerifier = {
@@ -69,6 +77,15 @@ const unavailableGoalRepository: GoalRepository = {
   },
 };
 
+const unavailableFinancialRepository: FinancialRepository = {
+  async findSnapshot() {
+    throw new Error('Financial repository is not configured.');
+  },
+  async runLockedMutation() {
+    throw new Error('Financial repository is not configured.');
+  },
+};
+
 function toProfile(record: ProfileRecord): Profile {
   return profileSchema.parse({
     id: record.id,
@@ -97,7 +114,9 @@ export function buildServer(dependencies: ServerDependencies = {}) {
   const authVerifier = dependencies.authVerifier ?? unavailableAuthVerifier;
   const profileRepository = dependencies.profileRepository ?? unavailableProfileRepository;
   const goalRepository = dependencies.goalRepository ?? unavailableGoalRepository;
-  const goalService = createGoalService(goalRepository);
+  const financialRepository = dependencies.financialRepository ?? unavailableFinancialRepository;
+  const goalService = createGoalService(goalRepository, dependencies.financialRepository);
+  const financialService = createFinancialService(financialRepository);
   const deploymentCapabilities = deploymentCapabilitiesSchema.parse(
     dependencies.deploymentCapabilities ?? {
       registrationEnabled: false,
@@ -202,6 +221,7 @@ export function buildServer(dependencies: ServerDependencies = {}) {
   });
 
   registerGoalRoutes(server, { authVerifier, goalService });
+  registerFinancialRoutes(server, { authVerifier, financialService });
 
   server.setNotFoundHandler((request, reply) =>
     reply.code(404).send(apiError(request.id, 'NOT_FOUND', 'The requested route was not found.')),

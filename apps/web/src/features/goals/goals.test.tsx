@@ -1,5 +1,5 @@
 import type { GoalDetail, GoalList, Profile } from '@goal-tracker/contracts';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from '../../app';
@@ -38,6 +38,8 @@ const incompleteGoal = {
     overallocated: null,
     allocationState: null,
     itemCount: 0,
+    financial: { funded: '0.00', spent: '0.00', available: '0.00', remaining: null },
+    currencyLocked: false,
   },
   items: [],
 } as GoalDetail;
@@ -75,6 +77,15 @@ function apiMock(overrides: Partial<GoalTrackerApi> = {}): GoalTrackerApi {
     deleteItem: vi.fn(),
     reorderItems: vi.fn(),
     convertPercent: vi.fn(),
+    getFinancialHistory: vi.fn().mockResolvedValue({
+      totals: { funded: '0.00', spent: '0.00', available: '0.00', remaining: null },
+      transactions: [],
+    }),
+    createFinancialTransaction: vi.fn(),
+    updateFinancialTransaction: vi.fn(),
+    deleteFinancialTransaction: vi.fn(),
+    purchaseItem: vi.fn(),
+    undoPurchase: vi.fn(),
     ...overrides,
   };
 }
@@ -164,6 +175,71 @@ describe('M2 goals web flows', () => {
     expect(screen.queryByText(/\$4,800|4800/)).not.toBeInTheDocument();
   });
 
+  it('keeps the contribution fast path in the center of mobile navigation', async () => {
+    const list = { active: [incompleteGoal], archived: [] } satisfies GoalList;
+    const api = apiMock({ listGoals: vi.fn().mockResolvedValue(list) });
+    render(<App auth={authMock()} api={api} />);
+
+    const navigation = await screen.findByRole('navigation', { name: 'Mobile' });
+    const add = within(navigation).getByRole('button', { name: 'Add contribution' });
+    expect(add).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '+ Add' })).not.toBeInTheDocument();
+
+    fireEvent.click(add);
+    expect(await screen.findByRole('heading', { name: 'Add contribution' })).toBeInTheDocument();
+    expect(api.getGoal).toHaveBeenCalledWith(session, incompleteGoal.id);
+  });
+
+  it('opens the single financial overview route from the whole goal card', async () => {
+    const detail = {
+      ...incompleteGoal,
+      name: 'Japan Trip',
+      targetMode: 'fixed',
+      fixedTarget: '3000.00',
+      derived: {
+        ...incompleteGoal.derived,
+        currentTarget: '3000.00',
+        setupIncomplete: false,
+        allocated: '0.00',
+        unallocated: '3000.00',
+        overallocated: '0.00',
+        allocationState: 'unallocated',
+        financial: {
+          funded: '180.00',
+          spent: '0.00',
+          available: '180.00',
+          remaining: '2820.00',
+        },
+      },
+    } as GoalDetail;
+    const api = apiMock({
+      listGoals: vi.fn().mockResolvedValue({ active: [detail], archived: [] } satisfies GoalList),
+      getGoal: vi.fn().mockResolvedValue(detail),
+    });
+    render(<App auth={authMock()} api={api} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Open Japan Trip' }));
+
+    await waitFor(() => expect(window.location.pathname).toBe(`/goals/${detail.id}`));
+    expect(await screen.findByRole('heading', { name: 'Japan Trip' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Japan Trip · items' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Manage items' }));
+    expect(await screen.findByRole('heading', { name: 'Japan Trip · items' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add an item' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe(`/goals/${detail.id}/items`);
+  });
+
+  it('opens the contribution drawer from an item route and canonicalizes the detail URL', async () => {
+    window.history.replaceState({}, '', `/goals/${incompleteGoal.id}/items`);
+    render(<App auth={authMock()} api={apiMock()} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Add contribution' }));
+
+    expect(await screen.findByRole('heading', { name: 'Add contribution' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe(`/goals/${incompleteGoal.id}`);
+  });
+
   it('creates a fixed goal and preserves form input after validation errors', async () => {
     const createGoal = vi
       .fn()
@@ -232,7 +308,7 @@ describe('M2 goals web flows', () => {
     expect(await screen.findByRole('heading', { name: 'Home Gym · items' })).toBeInTheDocument();
   });
 
-  it('edits an item through the accessible mobile sheet', async () => {
+  it('edits an item through the accessible mobile drawer', async () => {
     const itemGoal = {
       ...incompleteGoal,
       name: 'Japan Trip',
@@ -314,6 +390,7 @@ describe('M2 goals web flows', () => {
       />,
     );
 
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Delete goal' }));
     const confirm = await screen.findByLabelText('Type the goal name to confirm');
     expect(screen.getByRole('button', { name: 'Delete Old PC build' })).toBeDisabled();
