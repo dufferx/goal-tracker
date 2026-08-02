@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ContributionDrawer, PurchaseDrawer } from './financial';
 import { ApiRequestError, type GoalTrackerApi } from '../../lib/api';
+import { guidanceFixture, simulationReportFixture } from '../../test/fixtures';
 
 const session = { accessToken: 'token', email: 'alex@example.com' };
 const goal = {
@@ -32,6 +33,21 @@ const goal = {
     currencyLocked: true,
   },
   items: [],
+  guidance: guidanceFixture({
+    status: 'on_track',
+    obligation: {
+      kind: 'dated_items',
+      dueMonth: '2026-10',
+      itemNames: ['Flights'],
+      required: '720.00',
+      remainingOpportunities: 6,
+    },
+    recommendation: { perContribution: '120.00', monthly: '240.00', contributionsPerMonth: 2 },
+    progress: '180.00',
+    expectedProgress: '240.00',
+    paceDelta: '-60.00',
+    explanation: { code: 'pace_delta', delta: '-60.00' },
+  }),
 } as GoalDetail;
 
 function api(overrides: Partial<GoalTrackerApi> = {}): GoalTrackerApi {
@@ -61,6 +77,7 @@ function api(overrides: Partial<GoalTrackerApi> = {}): GoalTrackerApi {
     deleteFinancialTransaction: vi.fn(),
     purchaseItem: vi.fn(),
     undoPurchase: vi.fn(),
+    simulate: vi.fn().mockResolvedValue(simulationReportFixture()),
     ...overrides,
   };
 }
@@ -155,6 +172,61 @@ describe('M3 contribution sheet', () => {
 });
 
 describe('M3 purchase sheet', () => {
+  it('handles a formatted four-digit price when checking available money', async () => {
+    const item = {
+      id: '11111111-1111-4111-8111-111111111111',
+      goalId: goal.id,
+      name: 'Flights',
+      expectedPrice: '1500.00',
+      dueMonth: '2027-03',
+      position: 0,
+      createdAt: '2026-07-01T00:00:00.000Z',
+      updatedAt: '2026-07-01T00:00:00.000Z',
+      purchase: null,
+    };
+    const purchase = vi.fn().mockResolvedValue({
+      totals: goal.derived.financial,
+      transaction: null,
+    });
+    render(
+      <PurchaseDrawer
+        item={item}
+        goal={{
+          ...goal,
+          derived: {
+            ...goal.derived,
+            financial: {
+              funded: '2000.00',
+              spent: '0.00',
+              available: '2000.00',
+              remaining: '2000.00',
+            },
+          },
+          items: [item],
+        }}
+        api={api({ purchaseItem: purchase })}
+        session={session}
+        onClose={vi.fn()}
+        onChanged={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText('What you paid')).toHaveValue('1,500');
+    expect(screen.getByText('Available').parentElement).toHaveTextContent('$2,000 → $500');
+    expect(screen.queryByText('Not enough available')).not.toBeInTheDocument();
+    const submit = screen.getByRole('button', { name: 'Record purchase' });
+    expect(submit).toBeEnabled();
+    fireEvent.click(submit);
+    await waitFor(() =>
+      expect(purchase).toHaveBeenCalledWith(
+        session,
+        goal.id,
+        item.id,
+        expect.objectContaining({ amount: '1500.00' }),
+      ),
+    );
+  });
+
   it('asks how to handle a fixed-target overage and resubmits the chosen decision', async () => {
     const item = {
       id: '11111111-1111-4111-8111-111111111111',

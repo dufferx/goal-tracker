@@ -34,6 +34,7 @@ import { GoalsDashboard } from './features/goals/dashboard';
 import { GoalCreatePage } from './features/goals/goal-create';
 import { GoalDetailPage } from './features/goals/goal-detail';
 import { ContributionDrawer, FinancialHistoryPage } from './features/goals/financial';
+import { SimulatorPage } from './features/goals/simulator';
 import { OnboardingWelcome } from './features/goals/onboarding';
 import { ApiRequestError, type GoalTrackerApi } from './lib/api';
 import type { AuthGateway, AuthSession } from './lib/auth';
@@ -54,7 +55,8 @@ type Route =
   | 'goal-create'
   | 'goal-detail'
   | 'goal-history'
-  | 'goal-items';
+  | 'goal-items'
+  | 'goal-simulator';
 
 function currentRoute(): Route {
   const path = window.location.pathname;
@@ -68,6 +70,8 @@ function currentRoute(): Route {
   if (historyMatch) return 'goal-history';
   const itemsMatch = /^\/goals\/([^/]+)\/items$/.exec(path);
   if (itemsMatch) return 'goal-items';
+  const simulatorMatch = /^\/goals\/([^/]+)\/simulator$/.exec(path);
+  if (simulatorMatch) return 'goal-simulator';
   const detailMatch = /^\/goals\/([^/]+)$/.exec(path);
   if (detailMatch) return 'goal-detail';
   return 'sign-in';
@@ -90,6 +94,7 @@ function navigate(route: Route, goalId?: string) {
     'goal-detail': goalId ? `/goals/${goalId}` : '/goals',
     'goal-history': goalId ? `/goals/${goalId}/history` : '/goals',
     'goal-items': goalId ? `/goals/${goalId}/items` : '/goals',
+    'goal-simulator': goalId ? `/goals/${goalId}/simulator` : '/goals',
   };
   window.history.pushState({}, '', paths[route]);
   window.dispatchEvent(new PopStateEvent('popstate'));
@@ -1018,9 +1023,21 @@ function AuthenticatedApp({
         onOpenOverview={() => navigate('goal-detail', goalId)}
         onOpenItems={() => navigate('goal-items', goalId)}
         onOpenHistory={() => navigate('goal-history', goalId)}
+        onOpenSimulator={() => navigate('goal-simulator', goalId)}
         onOpenSettings={() => navigate('settings')}
         onDeleted={() => navigate('goals')}
         onSessionExpired={onSessionExpired}
+      />
+    );
+  }
+
+  if (route === 'goal-simulator' && goalId) {
+    return (
+      <SimulatorPage
+        api={api}
+        session={session}
+        goalId={goalId}
+        onBack={() => navigate('goal-detail', goalId)}
       />
     );
   }

@@ -213,6 +213,9 @@ If an item is already purchased, its obligation is satisfied by its actual purch
 purchased after its due month, history remains truthful and the current recommendation uses the
 remaining future obligations.
 
+The goal-detail timeline keeps satisfied due-item milestones visible and marks them as funded or
+purchased instead of removing them when guidance advances to the next obligation.
+
 ### 6.3 Open goals
 
 A goal without any future due month or final month has no deadline-based required pace.
@@ -250,7 +253,9 @@ Simulation is an in-memory report. It never creates, updates, or purchases anyth
 - The user may define up to three sequential future phases.
 - Each phase specifies a number of calendar months and a hypothetical amount per contribution. The
   goal frequency applies that amount once or twice in each simulated month.
+- A phase may use a zero contribution to represent one or more months without saving.
 - The final phase may optionally continue until the next item deadline or the final target.
+  Automatic continuation requires a contribution greater than zero.
 - Only contributions are simulated.
 - The report shows projected funded and available money by month, expected target completion when
   calculable, and the month in which each unpurchased item becomes affordable.

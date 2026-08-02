@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './app';
 import { ApiRequestError, type GoalTrackerApi } from './lib/api';
 import type { AuthGateway, AuthSession } from './lib/auth';
+import { simulationReportFixture } from './test/fixtures';
 
 const capabilities = {
   registrationEnabled: true,
@@ -61,6 +62,7 @@ function apiMock(overrides: Partial<GoalTrackerApi> = {}): GoalTrackerApi {
     deleteFinancialTransaction: vi.fn(),
     purchaseItem: vi.fn(),
     undoPurchase: vi.fn(),
+    simulate: vi.fn().mockResolvedValue(simulationReportFixture()),
     ...overrides,
   };
 }

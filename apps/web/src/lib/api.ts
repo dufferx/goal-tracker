@@ -28,8 +28,11 @@ import {
   type UpdateFinancialTransactionRequest,
   type PurchaseItemRequest,
   type UndoPurchaseRequest,
+  type SimulateRequest,
+  type SimulationReport,
   financialHistorySchema,
   financialMutationResponseSchema,
+  simulationReportSchema,
 } from '@goal-tracker/contracts';
 
 import type { AuthSession } from './auth';
@@ -104,6 +107,7 @@ export interface GoalTrackerApi {
     purchaseId: string,
     input: UndoPurchaseRequest,
   ): Promise<FinancialMutationResponse>;
+  simulate(session: AuthSession, goalId: string, input: SimulateRequest): Promise<SimulationReport>;
 }
 
 export class ApiRequestError extends Error {
@@ -318,6 +322,15 @@ export function createGoalTrackerApi(baseUrl: string): GoalTrackerApi {
     async undoPurchase(session, goalId, purchaseId, input) {
       return financialMutationResponseSchema.parse(
         await request(`/api/v1/goals/${goalId}/transactions/${purchaseId}/undo`, {
+          method: 'POST',
+          headers: authenticatedHeaders(session),
+          body: JSON.stringify(input),
+        }),
+      );
+    },
+    async simulate(session, goalId, input) {
+      return simulationReportSchema.parse(
+        await request(`/api/v1/goals/${goalId}/simulations`, {
           method: 'POST',
           headers: authenticatedHeaders(session),
           body: JSON.stringify(input),

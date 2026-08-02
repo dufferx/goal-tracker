@@ -2,6 +2,30 @@ export { businessMonthDateSchema, businessMonthSchema } from './business-month.j
 export { currencyCodeSchema } from './currency.js';
 export { apiErrorSchema, apiFieldErrorsSchema, type ApiError } from './errors.js';
 export {
+  guidanceObligationSchema,
+  guidanceRecommendationSchema,
+  guidanceSchema,
+  paceStatusSchema,
+  projectionExplanationCodeSchema,
+  projectionExplanationSchema,
+  simulateRequestSchema,
+  simulationItemAffordabilitySchema,
+  simulationMonthRowSchema,
+  simulationPhaseInputSchema,
+  simulationReportSchema,
+  type Guidance,
+  type GuidanceObligation,
+  type GuidanceRecommendation,
+  type PaceStatus,
+  type ProjectionExplanation,
+  type ProjectionExplanationCode,
+  type SimulateRequest,
+  type SimulationItemAffordability,
+  type SimulationMonthRow,
+  type SimulationPhaseInput,
+  type SimulationReport,
+} from './guidance.js';
+export {
   createFinancialTransactionRequestSchema,
   effectiveDateSchema,
   financialHistorySchema,
@@ -60,7 +84,11 @@ export {
   type UpdateGoalItemRequest,
   type UpdateGoalRequest,
 } from './goals.js';
-export { moneyDecimalStringSchema, positiveMoneyDecimalStringSchema } from './money.js';
+export {
+  moneyDecimalStringSchema,
+  nonNegativeMoneyDecimalStringSchema,
+  positiveMoneyDecimalStringSchema,
+} from './money.js';
 export {
   deploymentCapabilitiesSchema,
   profileSchema,

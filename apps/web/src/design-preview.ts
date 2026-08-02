@@ -2,6 +2,7 @@ import type { GoalDetail, GoalList, Profile } from '@goal-tracker/contracts';
 
 import type { GoalTrackerApi } from './lib/api';
 import type { AuthGateway, AuthSession } from './lib/auth';
+import { onTrackGuidanceFixture, guidanceFixture, simulationReportFixture } from './test/fixtures';
 
 const session: AuthSession = {
   accessToken: 'design-preview-token',
@@ -66,6 +67,7 @@ const japan: GoalDetail = {
       purchase: null,
     },
   ],
+  guidance: onTrackGuidanceFixture(),
 };
 
 const homeGym: GoalDetail = {
@@ -111,6 +113,57 @@ const homeGym: GoalDetail = {
       expectedPrice: '250.00',
     },
   ],
+  guidance: guidanceFixture({
+    target: '810.00',
+    remaining: '110.00',
+    status: 'on_track',
+    recommendation: { perContribution: '100.00', monthly: '100.00', contributionsPerMonth: 1 },
+    progress: '700.00',
+    expectedProgress: '600.00',
+    paceDelta: '100.00',
+    forecastMonth: '2026-09',
+    explanation: { code: 'open_goal_forecast', forecastMonth: '2026-09' },
+  }),
+};
+
+const fundedJapanMilestone: GoalDetail = {
+  ...japan,
+  fixedTarget: '4000.00',
+  finalMonth: '2027-03',
+  derived: {
+    ...japan.derived,
+    currentTarget: '4000.00',
+    itemsTotal: '1500.00',
+    allocated: '1500.00',
+    unallocated: '2500.00',
+    itemCount: 1,
+    financial: { funded: '2000.00', spent: '0.00', available: '2000.00', remaining: '2000.00' },
+  },
+  items: [
+    {
+      ...japan.items[0]!,
+      expectedPrice: '1500.00',
+      dueMonth: '2027-03',
+    },
+  ],
+  guidance: guidanceFixture({
+    asOfMonth: '2026-07',
+    target: '4000.00',
+    remaining: '2000.00',
+    status: 'ahead',
+    obligation: {
+      kind: 'final_target',
+      dueMonth: '2027-03',
+      itemNames: [],
+      required: '2000.00',
+      remainingOpportunities: 18,
+    },
+    recommendation: { perContribution: '111.12', monthly: '222.24', contributionsPerMonth: 2 },
+    progress: '500.00',
+    expectedProgress: '0.00',
+    paceDelta: '500.00',
+    explanation: { code: 'pace_delta', delta: '500.00' },
+  }),
 };
 
 const incomplete: GoalDetail = {
@@ -131,6 +184,12 @@ const incomplete: GoalDetail = {
     currencyLocked: false,
   },
   items: [],
+  guidance: guidanceFixture({
+    target: null,
+    remaining: null,
+    setupIncomplete: true,
+    explanation: { code: 'setup_incomplete' },
+  }),
 };
 
 function previewList(state: string): GoalList {
@@ -172,7 +231,9 @@ export function createDesignPreviewDependencies(state: string): {
       return previewList(state);
     },
     getGoal: async (_session, goalId) =>
-      [japan, homeGym, incomplete].find((goal) => goal.id === goalId) ?? japan,
+      state === 'm4-funded-milestone'
+        ? fundedJapanMilestone
+        : ([japan, homeGym, incomplete].find((goal) => goal.id === goalId) ?? japan),
     createGoal: async () => japan,
     updateGoal: async () => japan,
     previewPlanning: async () => ({
@@ -261,6 +322,27 @@ export function createDesignPreviewDependencies(state: string): {
     }),
     purchaseItem: async () => ({ totals: japan.derived.financial, transaction: null }),
     undoPurchase: async () => ({ totals: japan.derived.financial, transaction: null }),
+    simulate: async () =>
+      state === 'm4-simulator'
+        ? simulationReportFixture({
+            months: [
+              { month: '2026-08', funded: '850.00', available: '290.00' },
+              { month: '2026-09', funded: '1000.00', available: '440.00' },
+              { month: '2026-10', funded: '1150.00', available: '590.00' },
+              { month: '2026-11', funded: '1230.00', available: '670.00' },
+              { month: '2026-12', funded: '1310.00', available: '750.00' },
+              { month: '2027-01', funded: '1390.00', available: '830.00' },
+            ],
+            targetReachedMonth: '2026-08',
+            fundedAtTarget: '850.00',
+            itemAffordability: [
+              {
+                itemId: '44444444-4444-4444-8444-444444444444',
+                affordableMonth: '2026-08',
+              },
+            ],
+          })
+        : simulationReportFixture(),
   };
 
   return { auth, api };

@@ -5,6 +5,7 @@ import {
   type Goal,
   type GoalDetail,
   type GoalItem,
+  type Guidance,
 } from '@goal-tracker/contracts';
 import {
   calculateTarget,
@@ -111,10 +112,12 @@ export function toGoalItemDto(
 export function toGoalDetailDto(
   goal: GoalRecord,
   items: GoalItemRecord[],
-  transactions: FinancialTransactionRecord[] = [],
+  transactions: FinancialTransactionRecord[],
+  guidance: Guidance,
 ): GoalDetail {
   return goalDetailSchema.parse({
     ...toGoalDto(goal, items, transactions),
     items: items.map((item) => toGoalItemDto(item, transactions)),
+    guidance,
   });
 }

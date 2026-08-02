@@ -19,6 +19,9 @@ import { registerGoalRoutes } from './goals/routes.js';
 import { createGoalService } from './goals/service.js';
 import { registerFinancialRoutes } from './finance/routes.js';
 import { createFinancialService } from './finance/service.js';
+import { registerGuidanceRoutes } from './guidance/routes.js';
+import { businessMonthFromDate } from './guidance/serialize.js';
+import { createGuidanceService } from './guidance/service.js';
 
 export interface ServerDependencies {
   allowedWebOrigin?: string;
@@ -27,6 +30,7 @@ export interface ServerDependencies {
   profileRepository?: ProfileRepository;
   goalRepository?: GoalRepository;
   financialRepository?: FinancialRepository;
+  now?: () => Date;
 }
 
 const unavailableAuthVerifier: AuthVerifier = {
@@ -118,8 +122,10 @@ export function buildServer(dependencies: ServerDependencies = {}) {
   const profileRepository = dependencies.profileRepository ?? unavailableProfileRepository;
   const goalRepository = dependencies.goalRepository ?? unavailableGoalRepository;
   const financialRepository = dependencies.financialRepository ?? unavailableFinancialRepository;
+  const now = dependencies.now ?? (() => new Date());
   const goalService = createGoalService(goalRepository, dependencies.financialRepository);
-  const financialService = createFinancialService(financialRepository);
+  const financialService = createFinancialService(financialRepository, { now });
+  const guidanceService = createGuidanceService(financialRepository, { now });
   const deploymentCapabilities = deploymentCapabilitiesSchema.parse(
     dependencies.deploymentCapabilities ?? {
       registrationEnabled: false,
@@ -223,8 +229,13 @@ export function buildServer(dependencies: ServerDependencies = {}) {
     }
   });
 
-  registerGoalRoutes(server, { authVerifier, goalService });
+  registerGoalRoutes(server, {
+    authVerifier,
+    goalService,
+    currentMonth: () => businessMonthFromDate(now()),
+  });
   registerFinancialRoutes(server, { authVerifier, financialService });
+  registerGuidanceRoutes(server, { authVerifier, guidanceService });
 
   server.setNotFoundHandler((request, reply) =>
     reply.code(404).send(apiError(request.id, 'NOT_FOUND', 'The requested route was not found.')),

@@ -1,8 +1,10 @@
 export {
   BusinessMonthError,
+  addBusinessMonths,
   assertDueMonthAllowed,
   assertMonthRange,
   compareBusinessMonths,
+  diffBusinessMonths,
   formatBusinessMonth,
   isBusinessMonthWithinRange,
   parseBusinessMonth,
@@ -45,6 +47,31 @@ export {
   type PlanningItem,
   type PlanningValidationResult,
 } from './planning.js';
+
+export {
+  projectGuidance,
+  type PaceStatus,
+  type Projection,
+  type ProjectionExplanation,
+  type ProjectionExplanationCode,
+  type ProjectionInput,
+  type ProjectionItemInput,
+  type ProjectionObligation,
+  type ProjectionRecommendation,
+} from './projection.js';
+
+export {
+  SIMULATION_MAX_MONTHS,
+  SimulationError,
+  simulatePhases,
+  type SimulationErrorCode,
+  type SimulationInput,
+  type SimulationItemAffordability,
+  type SimulationItemInput,
+  type SimulationMonthRow,
+  type SimulationPhaseInput,
+  type SimulationReport,
+} from './simulation.js';
 
 export {
   TargetError,

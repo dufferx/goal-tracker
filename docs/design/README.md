@@ -31,12 +31,13 @@ frame are prototype annotations for implementers, not application copy.
 
 ## Current implementation evidence
 
-M1 and M2 implementation captures produced by the real React application are stored separately
+M1 through M4 implementation captures produced by the real React application are stored separately
 from the immutable design references:
 
 - [M1 implementation captures](implementation/m1/)
 - [M2 implementation captures](implementation/m2/)
 - [M3 implementation captures and comparison notes](implementation/m3/)
+- [M4 implementation captures and visual acceptance](implementation/m4/)
 - [M2.1 surface and state matrix](M2_1_Surface_Matrix.md)
 
 These captures are evidence for comparison, not a new design source. A milestone is not visually

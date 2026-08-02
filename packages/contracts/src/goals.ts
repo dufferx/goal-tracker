@@ -4,10 +4,13 @@ import { businessMonthSchema } from './business-month.js';
 import { currencyCodeSchema } from './currency.js';
 import { moneyDecimalStringSchema, positiveMoneyDecimalStringSchema } from './money.js';
 import { financialTotalsSchema } from './finance.js';
+import { contributionsPerMonthSchema } from './planning.js';
+import { guidanceSchema } from './guidance.js';
+
+export { contributionsPerMonthSchema } from './planning.js';
 
 export const targetModeSchema = z.enum(['fixed', 'items']);
 export const goalStatusSchema = z.enum(['active', 'archived']);
-export const contributionsPerMonthSchema = z.union([z.literal(1), z.literal(2)]);
 export const fixedOverageDecisionSchema = z.enum(['keep_target', 'increase_target']);
 export const allocationStateSchema = z.enum(['allocated', 'unallocated', 'overallocated']);
 
@@ -190,6 +193,7 @@ export type Goal = z.infer<typeof goalSchema>;
 export const goalDetailSchema = goalSchema
   .extend({
     items: z.array(goalItemSchema),
+    guidance: guidanceSchema,
   })
   .strict();
 
