@@ -117,86 +117,92 @@ export function GuidanceCard({
 
   const content = (
     <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
-          {status ? (
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-pill border border-border px-2.5 py-1 text-xs font-semibold ${status.tone}`}
-            >
-              <span aria-hidden="true" className={`size-1.5 rounded-full ${status.dot}`} />
-              {status.label}
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-pill border border-border px-2.5 py-1 text-xs font-semibold text-status-none">
-              <span aria-hidden="true" className="size-1.5 rounded-full bg-status-none" />
-              {guidance.fullyFunded ? 'Fully funded' : 'No pace status'}
-            </span>
-          )}
-          <span className="text-xs text-text-tertiary">
-            {formatBusinessMonthLabel(guidance.asOfMonth)} ·{' '}
-            {goal.contributionsPerMonth === 2 ? 'twice monthly' : 'once monthly'} · {currency}
+      <div className="flex flex-wrap items-center gap-2">
+        {status ? (
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-pill border border-border px-2.5 py-1 text-xs font-semibold ${status.tone}`}
+          >
+            <span aria-hidden="true" className={`size-1.5 rounded-full ${status.dot}`} />
+            {status.label}
           </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-pill border border-border px-2.5 py-1 text-xs font-semibold text-status-none">
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-status-none" />
+            {guidance.fullyFunded ? 'Fully funded' : 'No pace status'}
+          </span>
+        )}
+        <span className="text-xs text-text-tertiary">
+          {formatBusinessMonthLabel(guidance.asOfMonth)} ·{' '}
+          {goal.contributionsPerMonth === 2 ? 'twice monthly' : 'once monthly'} · {currency}
+        </span>
+      </div>
+
+      {title ? (
+        <p
+          className={embedded ? 'text-[1.35rem] font-semibold leading-7' : 'text-lg font-semibold'}
+        >
+          {title}
+        </p>
+      ) : null}
+
+      {showObligation && !embedded ? (
+        <div className="space-y-2 rounded-inner bg-control p-3 text-sm">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-text-secondary">
+              {guidance.obligation!.kind === 'dated_items' ? 'Next item' : 'Final target'}
+            </span>
+            <span className="text-right font-medium">
+              {guidance.obligation!.kind === 'dated_items'
+                ? `${guidance.obligation!.itemNames.join(', ')} · `
+                : ''}
+              {formatBusinessMonthLabel(guidance.obligation!.dueMonth)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-text-secondary">Still needed</span>
+            <span className="text-right font-medium" data-money>
+              {formatMoney(guidance.obligation!.required, currency)}{' '}
+              <span className="text-text-tertiary">
+                over {contributionCountText(guidance.obligation!.remainingOpportunities)}
+              </span>
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-text-secondary">Monthly</span>
+            <span className="font-medium" data-money>
+              {formatMoney(guidance.recommendation!.monthly, currency)}
+            </span>
+          </div>
         </div>
+      ) : null}
 
-        {title ? <p className={embedded ? 'text-[1.35rem] font-semibold leading-7' : 'text-lg font-semibold'}>{title}</p> : null}
+      {detail ? <p className="text-sm leading-6 text-text-secondary">{detail}</p> : null}
 
-        {showObligation && !embedded ? (
-          <div className="space-y-2 rounded-inner bg-control p-3 text-sm">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-text-secondary">
-                {guidance.obligation!.kind === 'dated_items' ? 'Next item' : 'Final target'}
-              </span>
-              <span className="text-right font-medium">
-                {guidance.obligation!.kind === 'dated_items'
-                  ? `${guidance.obligation!.itemNames.join(', ')} · `
-                  : ''}
-                {formatBusinessMonthLabel(guidance.obligation!.dueMonth)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-text-secondary">Still needed</span>
-              <span className="text-right font-medium" data-money>
-                {formatMoney(guidance.obligation!.required, currency)}{' '}
-                <span className="text-text-tertiary">
-                  over {contributionCountText(guidance.obligation!.remainingOpportunities)}
-                </span>
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-text-secondary">Monthly</span>
-              <span className="font-medium" data-money>
-                {formatMoney(guidance.recommendation!.monthly, currency)}
-              </span>
-            </div>
-          </div>
-        ) : null}
-
-        {detail ? <p className="text-sm leading-6 text-text-secondary">{detail}</p> : null}
-
-        {showAddCta ? (
-          <div className="grid grid-cols-[1fr_auto] gap-2">
-            <Button className="min-h-12" onClick={onAddContribution}>
-              Add {formatMoney(guidance.recommendation!.perContribution, currency)}
-            </Button>
-            <Button variant="outline" className="min-h-12" onClick={onAddContribution}>
-              Other amount
-            </Button>
-          </div>
-        ) : null}
-        {guidance.explanation.code === 'no_pace' && goal.status === 'active' ? (
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" className="min-h-11" onClick={onEditGoal}>
-              Set a preferred amount
-            </Button>
-            <Button variant="outline" className="min-h-11" onClick={onEditGoal}>
-              Add a due month
-            </Button>
-          </div>
-        ) : null}
-        {guidance.setupIncomplete && goal.status === 'active' ? (
-          <Button variant="outline" className="min-h-11 w-full" onClick={onOpenItems}>
-            Add an item
+      {showAddCta ? (
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <Button className="min-h-12" onClick={onAddContribution}>
+            Add {formatMoney(guidance.recommendation!.perContribution, currency)}
           </Button>
-        ) : null}
+          <Button variant="outline" className="min-h-12" onClick={onAddContribution}>
+            Other amount
+          </Button>
+        </div>
+      ) : null}
+      {guidance.explanation.code === 'no_pace' && goal.status === 'active' ? (
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" className="min-h-11" onClick={onEditGoal}>
+            Set a preferred amount
+          </Button>
+          <Button variant="outline" className="min-h-11" onClick={onEditGoal}>
+            Add a due month
+          </Button>
+        </div>
+      ) : null}
+      {guidance.setupIncomplete && goal.status === 'active' ? (
+        <Button variant="outline" className="min-h-11 w-full" onClick={onOpenItems}>
+          Add an item
+        </Button>
+      ) : null}
     </div>
   );
 

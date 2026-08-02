@@ -100,7 +100,9 @@ describe('M4 simulator page', () => {
     await renderSimulator();
     expect(screen.getByText('Temporary preview')).toBeInTheDocument();
     expect(screen.getByText('Nothing here changes your goal.')).toBeInTheDocument();
-    expect(screen.getByText('Add a duration and contribution amount to every phase.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Add a duration and contribution amount to every phase.'),
+    ).toBeInTheDocument();
   });
 
   it('runs the simulation when every phase is complete and renders the report', async () => {
@@ -197,7 +199,9 @@ describe('M4 simulator page', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
     expect(screen.queryByText('Month by month')).not.toBeInTheDocument();
-    expect(screen.getByText('Add a duration and contribution amount to every phase.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Add a duration and contribution amount to every phase.'),
+    ).toBeInTheDocument();
   });
 
   it('navigates back to the goal', async () => {
