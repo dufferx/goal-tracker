@@ -158,12 +158,17 @@ Before declaring completion, run and report:
 
 ```sh
 pnpm install
+pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
 git diff --check
 ```
+
+Always review code style for the complete repository, not only the files changed in the active
+milestone. If `pnpm format:check` reports differences, format the affected files and rerun the
+check before committing or handing off work.
 
 Also run milestone-specific validation. If tooling, Docker, or local Supabase is unavailable, state
 exactly what could not run and provide the command required to validate it.
