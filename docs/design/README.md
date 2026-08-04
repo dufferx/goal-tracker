@@ -42,6 +42,7 @@ from the immutable design references:
 - [M5A responsive surface matrix](M5A_Surface_Matrix.md)
 - [M5A before baseline captures](implementation/m5a/before/)
 - [M5A responsive implementation evidence](implementation/m5a/)
+- [M5B quality audit and final captures](implementation/m5b/)
 
 These captures are evidence for comparison, not a new design source. A milestone is not visually
 complete when this evidence is missing or stale.
@@ -114,6 +115,9 @@ The approved build sequence is recorded in
 
 M5B audits the complete mobile and desktop reference set after M5A is accepted. It owns consistency,
 visible states, accessibility, and end-to-end journey evidence, not a new layout direction.
+Current audit notes and the complete 390px/1280px capture set are stored under
+[`implementation/m5b/`](implementation/m5b/).
+The user explicitly accepted this final capture set on 2026-08-04. The M5B visual gate is closed.
 
 ### M6 — Self-hosted release
 

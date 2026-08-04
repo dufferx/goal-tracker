@@ -34,7 +34,7 @@ composition. Shared CSS remains authoritative for token values.
 | hairline | `#1E2124` | row separators |
 | text | `#EDEFF1` | primary text |
 | text secondary | `#A2A9AF` | descriptions |
-| text tertiary | `#6B7278` | metadata |
+| text tertiary | `#798187` | metadata; WCAG AA on canvas and surfaces |
 | accent | `#74D3AE` | primary action and on-track |
 | accent surface | `#0E1A17` | quiet positive background |
 | accent border | `#1E3A32` | quiet positive boundary |
@@ -51,7 +51,7 @@ composition. Shared CSS remains authoritative for token values.
 | hairline | `#EBEBE7` |
 | text | `#14171A` |
 | text secondary | `#5B6268` |
-| text tertiary | `#7C8288` |
+| text tertiary | `#666E74` |
 | accent | `#1B6350` |
 | accent surface | `#E7F1ED` |
 | accent border | `#C9E0D7` |

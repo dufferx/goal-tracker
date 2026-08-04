@@ -22,6 +22,11 @@ describe('AppShell', () => {
     expect(primary).toHaveTextContent('Goals');
     expect(primary.querySelector('[aria-current="page"]')).toHaveTextContent('Goals');
     expect(screen.getByText('Active').parentElement).toHaveTextContent('3');
+    expect(screen.getByRole('link', { name: 'Skip to content' })).toHaveAttribute(
+      'href',
+      '#main-content',
+    );
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content');
     fireEvent.click(screen.getAllByRole('button', { name: 'Add contribution' })[0]!);
     expect(add).toHaveBeenCalledOnce();
   });

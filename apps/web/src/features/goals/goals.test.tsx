@@ -189,13 +189,15 @@ describe('M2 goals web flows', () => {
     render(<App auth={authMock()} api={api} />);
 
     const navigation = await screen.findByRole('navigation', { name: 'Mobile' });
-    const add = within(navigation).getByRole('button', { name: 'Add contribution' });
+    const add = await within(navigation).findByRole('button', { name: 'Add contribution' });
     expect(add).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '+ Add' })).not.toBeInTheDocument();
 
     fireEvent.click(add);
-    expect(await screen.findByRole('heading', { name: 'Add contribution' })).toBeInTheDocument();
-    expect(api.getGoal).toHaveBeenCalledWith(session, incompleteGoal.id);
+    await waitFor(() => expect(api.getGoal).toHaveBeenCalledWith(session, incompleteGoal.id));
+    expect(
+      await screen.findByRole('heading', { name: 'Add contribution' }, { timeout: 10_000 }),
+    ).toBeInTheDocument();
   });
 
   it('opens the single financial overview route from the whole goal card', async () => {
@@ -276,7 +278,7 @@ describe('M2 goals web flows', () => {
 
     render(<App auth={authMock()} api={apiMock({ createGoal })} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Create my first goal' }));
-    expect(screen.getByRole('radio', { name: /An amount/ })).toHaveAttribute(
+    expect(await screen.findByRole('radio', { name: /An amount/ })).toHaveAttribute(
       'data-state',
       'checked',
     );

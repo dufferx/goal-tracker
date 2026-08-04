@@ -192,11 +192,10 @@ export function GoalsDashboard({
       </div>
 
       {filter === 'archived' || (list?.archived.length ?? 0) > 0 ? (
-        <div className="flex gap-2" role="tablist" aria-label="Goal lists">
+        <div className="flex gap-2" role="group" aria-label="Goal lists">
           <Button
             type="button"
-            role="tab"
-            aria-selected={filter === 'active'}
+            aria-pressed={filter === 'active'}
             variant="outline"
             className={cn(
               'rounded-pill',
@@ -208,8 +207,7 @@ export function GoalsDashboard({
           </Button>
           <Button
             type="button"
-            role="tab"
-            aria-selected={filter === 'archived'}
+            aria-pressed={filter === 'archived'}
             variant="outline"
             className={cn(
               'rounded-pill',
@@ -223,7 +221,7 @@ export function GoalsDashboard({
       ) : null}
 
       {loading ? (
-        <Card>
+        <Card role="status" aria-label="Loading goals" aria-busy="true">
           <CardContent className="space-y-3 p-4">
             <Skeleton className="h-5 w-1/3" />
             <Skeleton className="h-8 w-2/3" />
@@ -234,7 +232,7 @@ export function GoalsDashboard({
       ) : null}
 
       {!loading && error ? (
-        <Card>
+        <Card role="alert">
           <CardContent className="space-y-3 p-4">
             <h2 className="text-lg font-semibold">Could not load your goals</h2>
             <p className="text-sm text-muted-foreground">

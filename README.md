@@ -22,17 +22,17 @@ simulations in the MVP.
 The `development` branch contains the monorepo foundation, D0/D1 documentation and design baseline,
 and the completed M1 through M4 product slices. Remaining feature work proceeds sequentially:
 
-| Milestone | Scope                                          |
-| --------- | ---------------------------------------------- |
-| D0        | Canonical product and architecture reset       |
-| D1        | Design references and executable visual tokens |
-| M1        | Identity and user isolation                    |
-| M2        | Goals and item planning                        |
-| M3        | Financial ledger and history                   |
-| M4        | Guidance and temporary simulation              |
+| Milestone | Scope                                           |
+| --------- | ----------------------------------------------- |
+| D0        | Canonical product and architecture reset        |
+| D1        | Design references and executable visual tokens  |
+| M1        | Identity and user isolation                     |
+| M2        | Goals and item planning                         |
+| M3        | Financial ledger and history                    |
+| M4        | Guidance and temporary simulation               |
 | M5A       | Responsive architecture and desktop composition |
 | M5B       | Integrated UX, accessibility, and journeys      |
-| M6        | Self-hosted hardening and release              |
+| M6        | Self-hosted hardening and release               |
 
 Do not treat a planned milestone as an implemented feature.
 
