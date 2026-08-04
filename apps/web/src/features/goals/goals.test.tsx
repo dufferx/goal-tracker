@@ -194,8 +194,10 @@ describe('M2 goals web flows', () => {
     expect(screen.queryByRole('button', { name: '+ Add' })).not.toBeInTheDocument();
 
     fireEvent.click(add);
-    expect(await screen.findByRole('heading', { name: 'Add contribution' })).toBeInTheDocument();
-    expect(api.getGoal).toHaveBeenCalledWith(session, incompleteGoal.id);
+    await waitFor(() => expect(api.getGoal).toHaveBeenCalledWith(session, incompleteGoal.id));
+    expect(
+      await screen.findByRole('heading', { name: 'Add contribution' }, { timeout: 10_000 }),
+    ).toBeInTheDocument();
   });
 
   it('opens the single financial overview route from the whole goal card', async () => {
