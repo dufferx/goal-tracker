@@ -160,6 +160,8 @@ The handoff must include:
 - M1 through M4 must each leave their owned surfaces at product quality.
 - A later milestone may extend an earlier surface, but it must not be expected to repair avoidable
   visual debt.
-- M5 is the integrated consistency, responsive, accessibility, and final-detail audit. It is not the
-  first visual-quality pass.
+- M5A owns responsive architecture and intentional desktop composition. Its accepted mobile and
+  desktop captures are a blocking gate before M5B.
+- M5B is the integrated consistency, accessibility, journey, and final-detail audit. It is not the
+  first visual-quality pass and must not redesign accepted M5A compositions.
 - A milestone with functional behavior but failed visual conformance remains incomplete.

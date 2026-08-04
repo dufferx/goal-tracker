@@ -24,7 +24,8 @@ mutation passes through one backend service, an explicit transaction, goal lock,
 replay. Never put authoritative rules in React or write financial rows from the
 browser.
 
-Implement only the active milestone, sequentially from D0 through D1 and M1–M6. Choose the simplest
+Implement only the active milestone, sequentially through D0, D1, M1, M2, M2.1, M3, M4, M5A,
+M5B, and M6. Choose the simplest
 implementation consistent with the canonical documents. Do not introduce:
 
 - tasks or task progress;
@@ -48,8 +49,10 @@ parallel buttons, inputs, cards, sheets, drawers, dialogs, selects, tables, aler
 Custom UI is limited to the documented Goal Tracker domain composites.
 
 M1 through M4 must each leave their owned surfaces at product quality. Current implementation
-captures and a side-by-side comparison are milestone exit evidence. M5 is the final integrated
-audit, not a phase for repairing avoidable foundational visual debt.
+captures and a side-by-side comparison are milestone exit evidence. M5A owns responsive
+architecture and desktop composition and has a blocking user visual gate. M5B is the final
+integrated accessibility and journey audit, not a phase for repairing avoidable foundational visual
+debt.
 
 Before completion, run:
 

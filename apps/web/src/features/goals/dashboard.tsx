@@ -24,10 +24,12 @@ function GoalCard({
   goal,
   onOpen,
   onAddItem,
+  compact = false,
 }: {
   goal: Goal;
   onOpen: () => void;
   onAddItem: () => void;
+  compact?: boolean;
 }) {
   if (goal.derived.setupIncomplete) {
     return (
@@ -70,20 +72,31 @@ function GoalCard({
   return (
     <button
       type="button"
-      className="w-full rounded-card text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className={cn(
+        'w-full rounded-card text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        compact && 'lg:col-span-2',
+      )}
       onClick={onOpen}
       aria-label={`Open ${goal.name}`}
     >
       <Card className="transition-colors hover:border-primary/50 hover:bg-control/30">
-        <CardContent className="space-y-3 p-4">
+        <CardContent
+          className={cn(
+            'space-y-3 p-4',
+            compact &&
+              'lg:grid lg:grid-cols-[minmax(10rem,0.8fr)_minmax(12rem,1fr)_minmax(18rem,1.4fr)] lg:items-center lg:gap-5 lg:space-y-0',
+          )}
+        >
           <div className="flex items-start justify-between gap-3">
             <h3 className="text-base font-semibold">{goal.name}</h3>
             <Badge variant="outline" className="text-muted-foreground">
               {goal.targetMode === 'fixed' ? 'Fixed target' : 'Item target'}
             </Badge>
           </div>
-          <p className="text-lg font-semibold leading-snug">{itemFact}</p>
-          <p className="text-sm text-muted-foreground">
+          <p className={cn('text-lg font-semibold leading-snug', compact && 'lg:hidden')}>
+            {itemFact}
+          </p>
+          <p className={cn('text-sm text-muted-foreground', compact && 'lg:hidden')}>
             {windowLabel}
             {goal.targetMode === 'fixed' && goal.derived.allocationState === 'overallocated'
               ? ` · Items over-allocate by ${formatMoney(goal.derived.overallocated ?? '0.00', goal.currency)}`
@@ -97,7 +110,12 @@ function GoalCard({
               {targetLabel}
             </span>
           </div>
-          <div className="space-y-2 border-t border-hairline pt-3">
+          <div
+            className={cn(
+              'space-y-2 border-t border-hairline pt-3',
+              compact && 'lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0',
+            )}
+          >
             <div className="flex items-center justify-between text-sm">
               <span className="text-text-secondary">Funded</span>
               <span data-money>{formatMoney(goal.derived.financial.funded, goal.currency)}</span>
@@ -260,11 +278,12 @@ export function GoalsDashboard({
                   {group.goals.length} {group.goals.length === 1 ? 'goal' : 'goals'}
                 </span>
               </div>
-              <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
-                {group.goals.map((goal) => (
+              <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 lg:grid-cols-2">
+                {group.goals.map((goal, index) => (
                   <GoalCard
                     key={goal.id}
                     goal={goal}
+                    compact={index >= 2}
                     onOpen={() => onOpenGoal(goal.id)}
                     onAddItem={() => onOpenItems(goal.id)}
                   />

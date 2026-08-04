@@ -82,9 +82,46 @@ function api(overrides: Partial<GoalTrackerApi> = {}): GoalTrackerApi {
   };
 }
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+function useDesktopViewport() {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(min-width: 1024px)',
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  );
+}
 
 describe('M3 contribution sheet', () => {
+  it('uses the shadcn dialog at desktop without changing the financial form', () => {
+    useDesktopViewport();
+    render(
+      <ContributionDrawer
+        open
+        onOpenChange={vi.fn()}
+        api={api()}
+        session={session}
+        goal={goal}
+        onReconciled={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Add contribution' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Amount')).toBeInTheDocument();
+  });
+
   it('submits exactly once and disables the financial controls while pending', async () => {
     let finish!: (value: unknown) => void;
     const create = vi.fn().mockReturnValue(

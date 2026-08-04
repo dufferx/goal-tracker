@@ -68,18 +68,30 @@ These prompts are execution checklists, not independent sources of product truth
 > reporting. Prove it never writes data or
 > assumes purchases. Follow the M4 captures and shared design system.
 
-## M5 — Product UX
+## M5A — Responsive architecture and desktop composition
 
-> Work only on M5 after M4 passes. Integrate and audit the already styled mobile-first experience for
-> authentication,
-> dashboard, goal detail, item and transaction flows, history, simulation, archives, and settings.
-> Complete loading, empty, error, success, disabled, confirmation, responsive, keyboard,
-> screen-reader, contrast, and connection-error states. Correct unexplained drift against the full
-> reference set; do not redesign mapped surfaces or add new product features.
+> Work only on M5A after M4 passes. Build the shared responsive authenticated shell and intentional
+> desktop compositions for dashboard, goal detail, forms, items, history, simulator, archives, and
+> settings while preserving the approved mobile layouts. Refactor presentation boundaries where
+> necessary, but do not duplicate routes or move business rules into React. Match the M5 desktop
+> dashboard and goal-detail references, use the existing mobile references as regression constraints,
+> and use shadcn/ui primitives for generic controls. Capture both viewport classes under
+> `docs/design/implementation/m5a/`, run the full suite, and stop for explicit user visual acceptance.
+> Do not begin M5B while that gate is open.
+
+## M5B — Integrated UX, accessibility, and journey quality
+
+> Work only on M5B from updated `development` after M5A's visual gate and pull request pass. Audit
+> authentication, dashboard, goal detail, item and transaction flows, history, simulation, archives,
+> and settings as complete responsive journeys. Complete loading, empty, error, success, disabled,
+> pending, confirmation, keyboard, screen-reader, contrast, reduced-motion, and connection-error
+> states. Add automated accessibility coverage, document a manual keyboard pass, and implement real
+> Japan Trip and Home Gym end-to-end journeys. Correct unexplained drift against the complete
+> reference set; do not redesign the accepted M5A compositions or add product features.
 
 ## M6 — Self-hosted release
 
-> Work only on M6 after M5 passes. Produce pinned, production-oriented self-hosting configuration;
+> Work only on M6 after M5B passes. Produce pinned, production-oriented self-hosting configuration;
 > environment validation; TLS, signup, SMTP, secrets, infrastructure backup, restore, upgrade,
 > rollback, logging, and operator documentation; and clean-install/recovery tests. Review current
 > upstream breaking changes rather than relying on old image or gateway assumptions.

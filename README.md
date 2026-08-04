@@ -19,9 +19,8 @@ simulations in the MVP.
 
 ## Current state
 
-The repository contains the monorepo foundation, D0/D1 documentation and design baseline, M1
-identity isolation, and M2 goals/item planning on `feat/goals-items`. Later feature work proceeds
-sequentially:
+The `development` branch contains the monorepo foundation, D0/D1 documentation and design baseline,
+and the completed M1 through M4 product slices. Remaining feature work proceeds sequentially:
 
 | Milestone | Scope                                          |
 | --------- | ---------------------------------------------- |
@@ -31,7 +30,8 @@ sequentially:
 | M2        | Goals and item planning                        |
 | M3        | Financial ledger and history                   |
 | M4        | Guidance and temporary simulation              |
-| M5        | Integrated accessible web experience           |
+| M5A       | Responsive architecture and desktop composition |
+| M5B       | Integrated UX, accessibility, and journeys      |
 | M6        | Self-hosted hardening and release              |
 
 Do not treat a planned milestone as an implemented feature.

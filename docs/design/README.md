@@ -39,6 +39,9 @@ from the immutable design references:
 - [M3 implementation captures and comparison notes](implementation/m3/)
 - [M4 implementation captures and visual acceptance](implementation/m4/)
 - [M2.1 surface and state matrix](M2_1_Surface_Matrix.md)
+- [M5A responsive surface matrix](M5A_Surface_Matrix.md)
+- [M5A before baseline captures](implementation/m5a/before/)
+- [M5A responsive implementation evidence](implementation/m5a/)
 
 These captures are evidence for comparison, not a new design source. A milestone is not visually
 complete when this evidence is missing or stale.
@@ -89,14 +92,28 @@ complete when this evidence is missing or stale.
 | [Planning timeline](reference/m3/goal-financial-detail.png) | G-01 | current month, due items, final target |
 | [Simulator](reference/m4/simulator.png) | G-04 | phases, validation, report, affordability |
 
-### M5 — Product UX integration
+### M5A — Responsive architecture and desktop composition
 
-M5 audits all references above and adds the wider compositions:
+M5A preserves all mobile references above and implements these wider compositions:
 
 | Reference | Artifact surface | States represented |
 | --- | --- | --- |
 | [Desktop dashboard](reference/m5/desktop-dashboard.png) | D-01 desktop | rail, currency groups, two-up cards |
 | [Desktop goal detail](reference/m5/desktop-goal-detail.png) | G-01 desktop | rail, sticky summary, items and history |
+
+M5A implementation evidence belongs under `implementation/m5a/`. Both 390px mobile regression
+captures and 1280px desktop captures were explicitly accepted on 2026-08-04. The M5A visual gate
+is closed.
+
+Discovery and acceptance criteria are recorded in
+[`GoalTracker_M5A_Responsive_Requirements.md`](../GoalTracker_M5A_Responsive_Requirements.md).
+The approved build sequence is recorded in
+[`GoalTracker_M5A_Responsive_Implementation_Plan.md`](../GoalTracker_M5A_Responsive_Implementation_Plan.md).
+
+### M5B — Integrated UX and accessibility
+
+M5B audits the complete mobile and desktop reference set after M5A is accepted. It owns consistency,
+visible states, accessibility, and end-to-end journey evidence, not a new layout direction.
 
 ### M6 — Self-hosted release
 

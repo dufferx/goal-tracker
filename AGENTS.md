@@ -26,7 +26,7 @@ technical architecture governs implementation. Surface genuine conflicts before 
 
 ## Delivery model
 
-- Implement D0, D1, then M1 through M6 sequentially.
+- Implement D0, D1, M1, M2, M2.1, M3, M4, M5A, M5B, then M6 sequentially.
 - Work only within the milestone requested by the user.
 - Do not begin a later milestone until the prior exit criteria pass.
 - Keep changes narrow and avoid future features, speculative abstractions, and unused dependencies.

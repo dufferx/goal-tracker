@@ -6,6 +6,14 @@ import { Input } from '@goal-tracker/ui/components/input';
 import { Label } from '@goal-tracker/ui/components/label';
 import { Skeleton } from '@goal-tracker/ui/components/skeleton';
 import { Switch } from '@goal-tracker/ui/components/switch';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@goal-tracker/ui/components/table';
 import { ArrowLeft, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -166,7 +174,7 @@ export function SimulatorPage({
 
   if (loadError) {
     return (
-      <div className="mx-auto min-h-dvh w-full max-w-[390px] px-4 pt-3">
+      <div className="mx-auto min-h-dvh w-full max-w-[390px] px-4 pt-3 lg:min-h-0 lg:max-w-[920px] lg:px-0 lg:pt-0">
         <Card>
           <CardContent className="space-y-3 p-4">
             <h1 className="text-lg font-semibold">Couldn&apos;t load the simulator</h1>
@@ -182,7 +190,7 @@ export function SimulatorPage({
 
   if (!goal) {
     return (
-      <div className="mx-auto w-full max-w-[390px] space-y-4 px-4 pt-3">
+      <div className="mx-auto w-full max-w-[390px] space-y-4 px-4 pt-3 lg:max-w-[920px] lg:px-0 lg:pt-0">
         <Skeleton className="h-8 w-1/2" />
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-40 w-full" />
@@ -194,12 +202,14 @@ export function SimulatorPage({
   const affordableItems = goal.items.filter((item) => !item.purchase);
 
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-[390px] space-y-4 px-4 pb-28 pt-3">
-      <div className="grid grid-cols-[44px_1fr_auto] items-center gap-2">
-        <Button variant="ghost" className="px-2" aria-label="Back" onClick={onBack}>
+    <div className="mx-auto min-h-dvh w-full max-w-[390px] space-y-4 px-4 pb-28 pt-3 lg:min-h-0 lg:max-w-[920px] lg:px-0 lg:pb-8 lg:pt-0">
+      <div className="grid grid-cols-[44px_1fr_auto] items-center gap-2 lg:grid-cols-[1fr_auto]">
+        <Button variant="ghost" className="px-2 lg:hidden" aria-label="Back" onClick={onBack}>
           <ArrowLeft className="size-4" />
         </Button>
-        <h1 className="truncate text-center text-lg font-semibold">{goal.name} · simulator</h1>
+        <h1 className="truncate text-center text-lg font-semibold lg:text-left lg:text-[27px]">
+          {goal.name} · simulator
+        </h1>
         <Button variant="ghost" className="min-h-9 px-2 text-sm" onClick={reset}>
           Reset
         </Button>
@@ -210,201 +220,219 @@ export function SimulatorPage({
         <AlertDescription>Nothing here changes your goal.</AlertDescription>
       </Alert>
 
-      {phases.map((phase, index) => {
-        const parsed = parsedPhases[index]!;
-        const range = phaseRangeLabel(phaseStarts[index]!, parsed.months);
-        const monthlyMinor =
-          parsed.amount != null ? Math.round(Number(parsed.amount) * 100) * frequency : null;
-        const totalMinor =
-          monthlyMinor != null && parsed.months != null ? monthlyMinor * parsed.months : null;
-        const asMoney = (minor: number) => (minor / 100).toFixed(2);
-        return (
-          <Card key={phase.key}>
-            <CardContent className="space-y-3 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="font-semibold">Phase {index + 1}</h2>
-                {range ? <span className="text-sm text-text-secondary">{range}</span> : null}
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor={`phase-months-${phase.key}`}>Months</Label>
-                  <Input
-                    id={`phase-months-${phase.key}`}
-                    inputMode="numeric"
-                    value={phase.months}
-                    onChange={(event) =>
-                      setPhases((current) =>
-                        current.map((entry) =>
-                          entry.key === phase.key
-                            ? { ...entry, months: event.target.value }
-                            : entry,
-                        ),
-                      )
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor={`phase-amount-${phase.key}`}>Per contribution</Label>
-                  <MoneyInput
-                    id={`phase-amount-${phase.key}`}
-                    currency={goal.currency}
-                    value={phase.amount}
-                    onChange={(event) =>
-                      setPhases((current) =>
-                        current.map((entry) =>
-                          entry.key === phase.key
-                            ? { ...entry, amount: event.target.value }
-                            : entry,
-                        ),
-                      )
-                    }
-                  />
-                </div>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-text-secondary">
-                  {monthlyMinor != null
-                    ? `${frequency === 2 ? 'Twice' : 'Once'} a month · ${formatMoney(asMoney(monthlyMinor), goal.currency)} a month${totalMinor != null ? ` · ${formatMoney(asMoney(totalMinor), goal.currency)} total` : ''}`
-                    : 'Set an amount to see the monthly total.'}
-                </p>
-                {phases.length > 1 ? (
-                  <Button
-                    variant="ghost"
-                    className="min-h-9 px-2 text-sm text-status-behind"
-                    onClick={() =>
-                      setPhases((current) => current.filter((entry) => entry.key !== phase.key))
-                    }
-                  >
-                    <X aria-hidden="true" className="size-4" /> Remove
-                  </Button>
-                ) : null}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+      <div className="space-y-4 lg:grid lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:items-start lg:gap-6 lg:space-y-0">
+        <div className="space-y-4">
+          {phases.map((phase, index) => {
+            const parsed = parsedPhases[index]!;
+            const range = phaseRangeLabel(phaseStarts[index]!, parsed.months);
+            const monthlyMinor =
+              parsed.amount != null ? Math.round(Number(parsed.amount) * 100) * frequency : null;
+            const totalMinor =
+              monthlyMinor != null && parsed.months != null ? monthlyMinor * parsed.months : null;
+            const asMoney = (minor: number) => (minor / 100).toFixed(2);
+            return (
+              <Card key={phase.key}>
+                <CardContent className="space-y-3 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="font-semibold">Phase {index + 1}</h2>
+                    {range ? <span className="text-sm text-text-secondary">{range}</span> : null}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor={`phase-months-${phase.key}`}>Months</Label>
+                      <Input
+                        id={`phase-months-${phase.key}`}
+                        inputMode="numeric"
+                        value={phase.months}
+                        onChange={(event) =>
+                          setPhases((current) =>
+                            current.map((entry) =>
+                              entry.key === phase.key
+                                ? { ...entry, months: event.target.value }
+                                : entry,
+                            ),
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`phase-amount-${phase.key}`}>Per contribution</Label>
+                      <MoneyInput
+                        id={`phase-amount-${phase.key}`}
+                        currency={goal.currency}
+                        value={phase.amount}
+                        onChange={(event) =>
+                          setPhases((current) =>
+                            current.map((entry) =>
+                              entry.key === phase.key
+                                ? { ...entry, amount: event.target.value }
+                                : entry,
+                            ),
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm text-text-secondary">
+                      {monthlyMinor != null
+                        ? `${frequency === 2 ? 'Twice' : 'Once'} a month · ${formatMoney(asMoney(monthlyMinor), goal.currency)} a month${totalMinor != null ? ` · ${formatMoney(asMoney(totalMinor), goal.currency)} total` : ''}`
+                        : 'Set an amount to see the monthly total.'}
+                    </p>
+                    {phases.length > 1 ? (
+                      <Button
+                        variant="ghost"
+                        className="min-h-9 px-2 text-sm text-status-behind"
+                        onClick={() =>
+                          setPhases((current) => current.filter((entry) => entry.key !== phase.key))
+                        }
+                      >
+                        <X aria-hidden="true" className="size-4" /> Remove
+                      </Button>
+                    ) : null}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
 
-      {phases.length < MAX_PHASES ? (
-        <Button
-          variant="outline"
-          className="min-h-12 w-full border-dashed"
-          onClick={() => setPhases((current) => [...current, newPhase()])}
-        >
-          Add {phases.length === 1 ? 'a second' : 'a third'} phase
-        </Button>
-      ) : null}
+          {phases.length < MAX_PHASES ? (
+            <Button
+              variant="outline"
+              className="min-h-12 w-full border-dashed"
+              onClick={() => setPhases((current) => [...current, newPhase()])}
+            >
+              Add {phases.length === 1 ? 'a second' : 'a third'} phase
+            </Button>
+          ) : null}
 
-      <div className="flex items-center gap-3 px-1">
-        <Switch
-          id="simulator-continue"
-          checked={continueLast}
-          onCheckedChange={(checked) => setContinueLast(checked === true)}
-          disabled={!lastPhaseCanContinue}
-          aria-describedby="simulator-continue-label"
-        />
-        <Label id="simulator-continue-label" htmlFor="simulator-continue" className="font-normal">
-          {lastPhaseCanContinue
-            ? 'Keep the last phase going until the target is reached'
-            : 'Use more than $0 in the last phase to continue automatically'}
-        </Label>
-      </div>
-
-      {report ? (
-        <Card>
-          <CardContent className="space-y-4 p-4">
-            <h2 className="text-sm font-semibold text-text-secondary">Report</h2>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-text-secondary">Target reached</span>
-                <span className="font-semibold text-primary">
-                  {report.targetReachedMonth
-                    ? formatBusinessMonthLabel(report.targetReachedMonth)
-                    : 'Not within these phases'}
-                </span>
-              </div>
-              {report.fundedAtTarget ? (
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-text-secondary">Funded by then</span>
-                  <span className="font-medium" data-money>
-                    {formatMoney(report.fundedAtTarget, goal.currency)}
-                  </span>
-                </div>
-              ) : null}
-            </div>
-
-            {affordableItems.length ? (
-              <div className="space-y-2 border-t border-hairline pt-3">
-                <h3 className="text-sm font-semibold text-text-secondary">
-                  Each item becomes affordable
-                </h3>
-                {affordableItems.map((item) => {
-                  const entry = report.itemAffordability.find((row) => row.itemId === item.id);
-                  return (
-                    <div key={item.id} className="flex items-center justify-between gap-3 text-sm">
-                      <span className="font-medium">
-                        {item.name}{' '}
-                        <span className="text-text-tertiary" data-money>
-                          {formatMoney(item.expectedPrice, goal.currency)}
-                        </span>
-                      </span>
-                      <span className="text-text-secondary">
-                        {entry?.affordableMonth
-                          ? formatBusinessMonthLabel(entry.affordableMonth)
-                          : 'Not within these phases'}
+          <div className="flex items-center gap-3 px-1">
+            <Switch
+              id="simulator-continue"
+              checked={continueLast}
+              onCheckedChange={(checked) => setContinueLast(checked === true)}
+              disabled={!lastPhaseCanContinue}
+              aria-describedby="simulator-continue-label"
+            />
+            <Label
+              id="simulator-continue-label"
+              htmlFor="simulator-continue"
+              className="font-normal"
+            >
+              {lastPhaseCanContinue
+                ? 'Keep the last phase going until the target is reached'
+                : 'Use more than $0 in the last phase to continue automatically'}
+            </Label>
+          </div>
+        </div>
+        <div className="space-y-4">
+          {report ? (
+            <Card>
+              <CardContent className="space-y-4 p-4">
+                <h2 className="text-sm font-semibold text-text-secondary">Report</h2>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-text-secondary">Target reached</span>
+                    <span className="font-semibold text-primary">
+                      {report.targetReachedMonth
+                        ? formatBusinessMonthLabel(report.targetReachedMonth)
+                        : 'Not within these phases'}
+                    </span>
+                  </div>
+                  {report.fundedAtTarget ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-text-secondary">Funded by then</span>
+                      <span className="font-medium" data-money>
+                        {formatMoney(report.fundedAtTarget, goal.currency)}
                       </span>
                     </div>
-                  );
-                })}
-                <p className="text-xs leading-5 text-text-tertiary">
-                  Affordable dates are informational. Simulated purchases are never applied.
-                </p>
-              </div>
-            ) : null}
+                  ) : null}
+                </div>
 
-            <div className="space-y-2 border-t border-hairline pt-3">
-              <h3 className="text-sm font-semibold text-text-secondary">Month by month</h3>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-text-tertiary">
-                    <th className="py-1 font-normal">Month</th>
-                    <th className="py-1 text-right font-normal">Funded</th>
-                    <th className="py-1 text-right font-normal">Available</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.months.map((row) => (
-                    <tr key={row.month} className="border-t border-hairline" data-money>
-                      <td className="py-1.5">{formatBusinessMonthLabel(row.month)}</td>
-                      <td className="py-1.5 text-right">
-                        {formatMoney(row.funded, goal.currency)}
-                      </td>
-                      <td className="py-1.5 text-right">
-                        {formatMoney(row.available, goal.currency)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
+                {affordableItems.length ? (
+                  <div className="space-y-2 border-t border-hairline pt-3">
+                    <h3 className="text-sm font-semibold text-text-secondary">
+                      Each item becomes affordable
+                    </h3>
+                    {affordableItems.map((item) => {
+                      const entry = report.itemAffordability.find((row) => row.itemId === item.id);
+                      return (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between gap-3 text-sm"
+                        >
+                          <span className="font-medium">
+                            {item.name}{' '}
+                            <span className="text-text-tertiary" data-money>
+                              {formatMoney(item.expectedPrice, goal.currency)}
+                            </span>
+                          </span>
+                          <span className="text-text-secondary">
+                            {entry?.affordableMonth
+                              ? formatBusinessMonthLabel(entry.affordableMonth)
+                              : 'Not within these phases'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    <p className="text-xs leading-5 text-text-tertiary">
+                      Affordable dates are informational. Simulated purchases are never applied.
+                    </p>
+                  </div>
+                ) : null}
 
-      {reportError ? (
-        <Alert variant="error">
-          <AlertDescription>{reportError}</AlertDescription>
-        </Alert>
-      ) : null}
-      {!phasesValid ? (
-        <p role="status" className="px-1 text-sm text-status-at-risk">
-          Add a duration and contribution amount to every phase.
-        </p>
-      ) : null}
-      {pending ? (
-        <p role="status" className="px-1 text-sm text-text-tertiary">
-          Updating the preview…
-        </p>
-      ) : null}
+                <div className="space-y-2 border-t border-hairline pt-3">
+                  <h3 className="text-sm font-semibold text-text-secondary">Month by month</h3>
+                  <Table className="text-sm">
+                    <TableHeader>
+                      <TableRow className="text-left text-text-tertiary">
+                        <TableHead className="h-auto px-0 py-1 font-normal">Month</TableHead>
+                        <TableHead className="h-auto px-0 py-1 text-right font-normal">
+                          Funded
+                        </TableHead>
+                        <TableHead className="h-auto px-0 py-1 text-right font-normal">
+                          Available
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {report.months.map((row) => (
+                        <TableRow key={row.month} className="border-t border-hairline" data-money>
+                          <TableCell className="px-0 py-1.5">
+                            {formatBusinessMonthLabel(row.month)}
+                          </TableCell>
+                          <TableCell className="px-0 py-1.5 text-right">
+                            {formatMoney(row.funded, goal.currency)}
+                          </TableCell>
+                          <TableCell className="px-0 py-1.5 text-right">
+                            {formatMoney(row.available, goal.currency)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {reportError ? (
+            <Alert variant="error">
+              <AlertDescription>{reportError}</AlertDescription>
+            </Alert>
+          ) : null}
+          {!phasesValid ? (
+            <p role="status" className="px-1 text-sm text-status-at-risk">
+              Add a duration and contribution amount to every phase.
+            </p>
+          ) : null}
+          {pending ? (
+            <p role="status" className="px-1 text-sm text-text-tertiary">
+              Updating the preview…
+            </p>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
