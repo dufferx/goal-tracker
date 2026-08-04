@@ -15,10 +15,14 @@
 | M2.1 | M1/M2 visual conformance recovery | `feat/goals-items` |
 | M3 | Financial ledger and history | `feat/financial-ledger` |
 | M4 | Guidance and temporary simulation | `feat/guidance-simulation` |
-| M5 | Integrated product UX | `feat/product-ux` |
+| M5A | Responsive architecture and desktop composition | `feat/product-ux-responsive` |
+| M5B | Integrated UX, accessibility, and journey quality | `feat/product-ux-quality` |
 | M6 | Self-hosted hardening and release | `chore/self-hosted-release` |
 
 The detailed scope and exit criteria are in `GoalTracker_Implementation_Plan.md`.
+
+M5A and M5B are separate, sequential delivery milestones. M5A receives its own pull request and
+must pass the documented visual gate before the M5B branch is created from updated `development`.
 
 ## Branch workflow
 

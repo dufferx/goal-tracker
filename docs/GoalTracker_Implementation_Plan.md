@@ -1,8 +1,8 @@
 # Goal Tracker — Implementation Plan
 
 **Status:** Approved
-**Last updated:** 2026-07-30
-**Sequence:** D0, D1, M1, M2, M2.1, then M3 through M6 without overlap
+**Last updated:** 2026-08-04
+**Sequence:** D0, D1, M1, M2, M2.1, M3, M4, M5A, M5B, then M6 without overlap
 
 This is the canonical delivery plan. `implementation-plan.md` at the repository root is the
 discovery-era detailed planning record; this document governs execution.
@@ -305,40 +305,102 @@ Both reference goals produce deterministic, understandable guidance, and simulat
 change real state or pretend affordable items were purchased. Implemented surfaces conform to the
 mapped references and shared design system.
 
-## M5 — Product UX integration
+## M5A — Responsive architecture and desktop composition
 
-**Goal:** Integrate and audit the already styled functional slices as one calm, accessible,
-mobile-first product without redesigning them.
+**Goal:** Establish the final responsive application structure and implement intentional desktop
+compositions without regressing the approved mobile experience or changing product behavior.
 
-**Suggested branch:** `feat/product-ux`
+**Suggested branch:** `feat/product-ux-responsive`
 
 ### Changes
 
-- align navigation, dashboard, goal detail, forms, history, simulator, archives, and settings;
-- correct visual drift from the milestone references without changing approved information
-  architecture;
-- implement consistent currency, date, status, toast, dialog, skeleton, and error patterns;
-- preserve form input across recoverable errors;
-- complete keyboard, screen-reader, focus, contrast, reduced-motion, and responsive behavior.
+- unify authenticated navigation under one responsive application shell with the approved desktop
+  rail and mobile tab bar;
+- remove mobile-only width constraints from authenticated surfaces where the desktop references
+  require more context, while keeping focused forms intentionally narrow;
+- refactor the vertical goal-detail implementation into reusable presentation sections that can be
+  composed on mobile and desktop without duplicating routes, screens, or business logic;
+- implement the desktop dashboard composition, currency groups, card density, rail actions, and
+  responsive goal states from the approved reference;
+- implement the desktop goal-detail composition with contextual rail, guidance and financial
+  summary, items, history, timeline, and simulator access;
+- give create/edit flows, items, history, simulator, archives, and settings deliberate desktop
+  widths and arrangements instead of scaling the mobile canvas;
+- retain the existing shadcn-based drawers and dialogs, approved Graphite tokens, and mobile
+  interaction behavior;
+- make no domain, ledger, projection, persistence, or product-rule changes.
 
 ### Design references
 
 - [Complete reference index](design/README.md)
 - [Desktop dashboard](design/reference/m5/desktop-dashboard.png)
 - [Desktop goal detail](design/reference/m5/desktop-goal-detail.png)
+- the existing mobile references for every surface changed by responsive composition.
+
+### Tests
+
+- responsive component and routing coverage for the shared shell and contextual navigation;
+- browser checks at the documented 390px mobile and 1280px desktop viewports;
+- mobile regression checks for every surface whose composition changes;
+- implementation captures for dashboard, goal detail, and representative secondary flows at both
+  viewport classes.
+
+### Exit criteria and visual gate
+
+- dashboard and goal detail match the approved desktop hierarchy, density, rail, and content
+  composition with no unexplained material divergence;
+- authenticated secondary flows have intentional desktop layouts and do not render as enlarged
+  390px screens;
+- the same routes and presentation components serve mobile and desktop without duplicated
+  authoritative logic;
+- mobile captures show no regression from their approved references;
+- keyboard focus order remains coherent across responsive navigation changes;
+- current implementation captures and comparison notes are stored under
+  `docs/design/implementation/m5a/`;
+- the full repository validation suite passes and the user explicitly accepts the mobile/desktop
+  visual comparison.
+
+**M5B must not begin until this visual gate passes.**
+
+## M5B — Integrated UX, accessibility, and journey quality
+
+**Goal:** Audit the responsive product as one calm, accessible experience and close cross-flow
+quality gaps without redesigning the M5A compositions.
+
+**Suggested branch:** `feat/product-ux-quality`
+
+### Changes
+
+- align dashboard, goal detail, forms, history, simulator, archives, settings, and authentication as
+  complete end-to-end journeys;
+- correct remaining visual drift without changing approved information architecture;
+- implement consistent currency, date, status, toast, dialog, drawer, skeleton, and error patterns;
+- complete loading, empty, success, error, disabled, pending, destructive, ambiguous-network, and
+  confirmation states;
+- preserve form input across recoverable errors;
+- complete keyboard, screen-reader, focus, contrast, reduced-motion, and responsive behavior;
+- audit production bundle composition and add code splitting only where it produces a clear,
+  measured benefit.
+
+### Design references
+
+- [Complete reference index](design/README.md), including all mobile references and the M5 desktop
+  compositions accepted in M5A.
 
 ### Tests
 
 - component and integration coverage for all visible states;
-- automated accessibility checks and manual keyboard pass;
-- mobile and desktop visual checks;
-- end-to-end Japan and home-gym journeys.
+- automated accessibility checks and a documented manual keyboard pass;
+- final mobile and desktop visual checks;
+- end-to-end Japan Trip and Home Gym journeys across the real application stack;
+- connection-error and recoverable-form scenarios for critical financial and planning flows.
 
 ### Exit criteria
 
 The product is usable without knowledge of its data model, status is never color-only, destructive
-actions are explicit, and critical journeys work on mobile and desktop. Visual review shows no
-unexplained divergence from the complete reference set.
+actions are explicit, and both critical journeys work on mobile and desktop. Accessibility checks,
+manual keyboard validation, end-to-end journeys, repository validation, and the final complete-set
+visual review pass with no unexplained divergence.
 
 ## M6 — Hardening and self-hosted release
 

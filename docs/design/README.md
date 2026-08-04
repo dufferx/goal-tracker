@@ -89,14 +89,22 @@ complete when this evidence is missing or stale.
 | [Planning timeline](reference/m3/goal-financial-detail.png) | G-01 | current month, due items, final target |
 | [Simulator](reference/m4/simulator.png) | G-04 | phases, validation, report, affordability |
 
-### M5 — Product UX integration
+### M5A — Responsive architecture and desktop composition
 
-M5 audits all references above and adds the wider compositions:
+M5A preserves all mobile references above and implements these wider compositions:
 
 | Reference | Artifact surface | States represented |
 | --- | --- | --- |
 | [Desktop dashboard](reference/m5/desktop-dashboard.png) | D-01 desktop | rail, currency groups, two-up cards |
 | [Desktop goal detail](reference/m5/desktop-goal-detail.png) | G-01 desktop | rail, sticky summary, items and history |
+
+M5A implementation evidence belongs under `implementation/m5a/`. Both 390px mobile regression
+captures and 1280px desktop captures require explicit visual acceptance before M5B begins.
+
+### M5B — Integrated UX and accessibility
+
+M5B audits the complete mobile and desktop reference set after M5A is accepted. It owns consistency,
+visible states, accessibility, and end-to-end journey evidence, not a new layout direction.
 
 ### M6 — Self-hosted release
 
