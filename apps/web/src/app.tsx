@@ -34,20 +34,36 @@ import type {
   Profile,
   UpdateProfileRequest,
 } from '@goal-tracker/contracts';
-import { type FormEvent, useEffect, useState } from 'react';
+import { lazy, Suspense, type FormEvent, useEffect, useState } from 'react';
 
 import { AppShell } from './components/app-shell';
 import { useDesktopLayout } from './components/use-desktop-layout';
 import { AuthShell, PageHeader } from './components/auth-shell';
 import { GoalsDashboard } from './features/goals/dashboard';
-import { GoalCreatePage } from './features/goals/goal-create';
-import { GoalDetailPage } from './features/goals/goal-detail';
-import { ContributionDrawer, FinancialHistoryPage } from './features/goals/financial';
-import { SimulatorPage } from './features/goals/simulator';
 import { OnboardingWelcome } from './features/goals/onboarding';
 import { ApiRequestError, type GoalTrackerApi } from './lib/api';
 import type { AuthGateway, AuthSession } from './lib/auth';
 import type { GoalList } from '@goal-tracker/contracts';
+
+const GoalCreatePage = lazy(() =>
+  import('./features/goals/goal-create').then((module) => ({ default: module.GoalCreatePage })),
+);
+const GoalDetailPage = lazy(() =>
+  import('./features/goals/goal-detail').then((module) => ({ default: module.GoalDetailPage })),
+);
+const ContributionDrawer = lazy(() =>
+  import('./features/goals/financial').then((module) => ({
+    default: module.ContributionDrawer,
+  })),
+);
+const FinancialHistoryPage = lazy(() =>
+  import('./features/goals/financial').then((module) => ({
+    default: module.FinancialHistoryPage,
+  })),
+);
+const SimulatorPage = lazy(() =>
+  import('./features/goals/simulator').then((module) => ({ default: module.SimulatorPage })),
+);
 
 const currencyNames = new Intl.DisplayNames(['en'], { type: 'currency' });
 const currencies = Intl.supportedValuesOf('currency').map(
@@ -554,7 +570,13 @@ function UpdatePasswordPage({ auth, session }: { auth: AuthGateway; session: Aut
 
 function SettingsSkeleton() {
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[620px] space-y-4 px-4 py-8">
+    <main
+      className="mx-auto min-h-screen w-full max-w-[620px] space-y-4 px-4 py-8"
+      aria-busy="true"
+    >
+      <p className="sr-only" role="status">
+        Loading…
+      </p>
       <Skeleton className="h-9 w-32" />
       <Skeleton className="h-24 w-full rounded-card" />
       <Skeleton className="h-28 w-full rounded-card" />
@@ -595,6 +617,7 @@ function GoalsHome({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedGoalId, setSelectedGoalId] = useState('');
   const [contributionGoal, setContributionGoal] = useState<GoalDetail>();
+  const [financialMessage, setFinancialMessage] = useState<string>();
   const desktop = useDesktopLayout();
 
   async function openContribution() {
@@ -683,6 +706,11 @@ function GoalsHome({
         ? { onAddContribution: () => void openContribution() }
         : {})}
     >
+      {financialMessage ? (
+        <Alert variant="success" className="mb-4">
+          <AlertTitle>{financialMessage}</AlertTitle>
+        </Alert>
+      ) : null}
       <GoalsDashboard
         list={list}
         loading={loading}
@@ -724,8 +752,9 @@ function GoalsHome({
           session={session}
           goal={contributionGoal}
           onOpenChange={(open) => !open && setContributionGoal(undefined)}
-          onReconciled={async () => {
+          onReconciled={async (message) => {
             await load();
+            setFinancialMessage(message);
           }}
         />
       ) : null}
@@ -1251,14 +1280,16 @@ export function App({ auth, api }: { auth: AuthGateway; api: GoalTrackerApi }) {
 
   if (session && route !== 'update-password') {
     return (
-      <AuthenticatedApp
-        api={api}
-        auth={auth}
-        session={session}
-        capabilities={capabilities}
-        route={route === 'sign-in' || route === 'register' ? 'goals' : route}
-        onSessionExpired={expireSession}
-      />
+      <Suspense fallback={<SettingsSkeleton />}>
+        <AuthenticatedApp
+          api={api}
+          auth={auth}
+          session={session}
+          capabilities={capabilities}
+          route={route === 'sign-in' || route === 'register' ? 'goals' : route}
+          onSessionExpired={expireSession}
+        />
+      </Suspense>
     );
   }
   if (route === 'register')

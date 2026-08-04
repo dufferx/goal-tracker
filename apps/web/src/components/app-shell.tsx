@@ -52,6 +52,12 @@ export function AppShell({
 }) {
   return (
     <div className="min-h-dvh bg-background text-foreground">
+      <a
+        href="#main-content"
+        className="fixed left-4 top-4 z-[100] -translate-y-24 rounded-control bg-primary px-4 py-3 font-medium text-primary-foreground transition-transform focus:translate-y-0"
+      >
+        Skip to content
+      </a>
       <div
         className={cn(
           'mx-auto flex min-h-dvh w-full flex-col lg:max-w-[var(--layout-content-max)] lg:flex-row lg:gap-8 lg:px-6 lg:pb-8',
@@ -78,7 +84,9 @@ export function AppShell({
             <GoalNavigation rail={rail} />
           )}
         </aside>
-        <main className="min-w-0 flex-1 lg:pt-6">{children}</main>
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 outline-none lg:pt-6">
+          {children}
+        </main>
       </div>
 
       {showMobileNavigation ? (

@@ -51,7 +51,7 @@ export function PlanningTimeline({
   if (!recommendation && !obligation && !goal.finalMonth && !guidance.forecastMonth) return null;
 
   return (
-    <Card aria-labelledby="planning-timeline-title">
+    <Card role="region" aria-labelledby="planning-timeline-title">
       <CardContent className="p-4">
         <div className="mb-5 flex items-center justify-between gap-3">
           <h2 id="planning-timeline-title" className="text-sm font-medium text-text-secondary">

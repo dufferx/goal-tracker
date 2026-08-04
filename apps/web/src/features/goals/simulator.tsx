@@ -175,7 +175,7 @@ export function SimulatorPage({
   if (loadError) {
     return (
       <div className="mx-auto min-h-dvh w-full max-w-[390px] px-4 pt-3 lg:min-h-0 lg:max-w-[920px] lg:px-0 lg:pt-0">
-        <Card>
+        <Card role="alert">
           <CardContent className="space-y-3 p-4">
             <h1 className="text-lg font-semibold">Couldn&apos;t load the simulator</h1>
             <p className="text-sm text-text-secondary">{loadError}</p>
@@ -190,7 +190,12 @@ export function SimulatorPage({
 
   if (!goal) {
     return (
-      <div className="mx-auto w-full max-w-[390px] space-y-4 px-4 pt-3 lg:max-w-[920px] lg:px-0 lg:pt-0">
+      <div
+        className="mx-auto w-full max-w-[390px] space-y-4 px-4 pt-3 lg:max-w-[920px] lg:px-0 lg:pt-0"
+        role="status"
+        aria-label="Loading simulator"
+        aria-busy="true"
+      >
         <Skeleton className="h-8 w-1/2" />
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-40 w-full" />

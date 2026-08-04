@@ -33,6 +33,7 @@ export type FinancialPersistenceCommand =
         FinancialTransactionRecord,
         'ownerId' | 'goalId' | 'createdAt' | 'updatedAt'
       >;
+      createdAt: Date;
       fixedTargetMinor?: bigint;
     }
   | {
@@ -124,6 +125,8 @@ export function createFinancialRepository(db: Database): FinancialRepository {
             ...command.transaction,
             ownerId,
             goalId,
+            createdAt: command.createdAt,
+            updatedAt: command.createdAt,
           });
         } else if (command.type === 'update') {
           await tx

@@ -167,9 +167,14 @@ export function ContributionDrawer({
   const desktop = useDesktopLayout();
   const form = (
     <div className="space-y-5 overflow-y-auto px-4 lg:px-0">
-      <div className="grid grid-cols-2 rounded-control bg-control p-1">
+      <div
+        className="grid grid-cols-2 rounded-control bg-control p-1"
+        role="group"
+        aria-label="Entry type"
+      >
         <Button
           variant={kind === 'contribution' ? 'default' : 'ghost'}
+          aria-pressed={kind === 'contribution'}
           onClick={() => setKind('contribution')}
           disabled={pending}
         >
@@ -177,6 +182,7 @@ export function ContributionDrawer({
         </Button>
         <Button
           variant={kind === 'withdrawal' ? 'default' : 'ghost'}
+          aria-pressed={kind === 'withdrawal'}
           onClick={() => setKind('withdrawal')}
           disabled={pending}
         >
@@ -699,6 +705,7 @@ export function FinancialOverview({
                         <Button
                           className="min-h-9 px-2"
                           variant="ghost"
+                          aria-label={`Undo purchase for ${item.name}`}
                           onClick={() => {
                             setUndoError(undefined);
                             setUndoUnknownResult(false);
@@ -711,6 +718,7 @@ export function FinancialOverview({
                         <Button
                           className="min-h-9 px-3"
                           variant="outline"
+                          aria-label={`Buy ${item.name}`}
                           disabled={amountNumber(goal.derived.financial.available) <= 0}
                           onClick={() => setPurchaseItem(item)}
                         >
@@ -1006,7 +1014,9 @@ export function FinancialHistoryPage({
   if (!goal || !history)
     return (
       <div className="mx-auto max-w-[390px] p-4 lg:max-w-[960px] lg:px-0 lg:pt-0">
-        <p className="text-sm text-text-secondary">Loading history…</p>
+        <p role="status" className="text-sm text-text-secondary">
+          Loading history…
+        </p>
       </div>
     );
   return (
@@ -1020,7 +1030,11 @@ export function FinancialHistoryPage({
         </h1>
         <span className="lg:hidden" />
       </header>
-      <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
+      <div
+        className="mt-5 flex gap-2 overflow-x-auto pb-1"
+        role="group"
+        aria-label="Transaction type"
+      >
         {[
           ['all', 'All'],
           ['contribution', 'Contributions'],
@@ -1030,6 +1044,7 @@ export function FinancialHistoryPage({
           <Button
             key={value}
             variant={kind === value ? 'default' : 'outline'}
+            aria-pressed={kind === value}
             className="min-h-9 rounded-pill px-3"
             onClick={() => setKind(value!)}
           >
@@ -1039,7 +1054,7 @@ export function FinancialHistoryPage({
       </div>
       <div className="mt-3 flex gap-2">
         <Select value={month} onValueChange={setMonth}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-[150px]" aria-label="Month">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

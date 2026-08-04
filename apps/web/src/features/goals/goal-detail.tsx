@@ -134,7 +134,7 @@ export function GoalDetailPage({
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4" role="status" aria-label="Loading goal" aria-busy="true">
         <Skeleton className="h-8 w-1/2" />
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-24 w-full" />
@@ -144,7 +144,7 @@ export function GoalDetailPage({
 
   if (error || !goal) {
     return (
-      <Card>
+      <Card role="alert">
         <CardContent className="space-y-3 p-4">
           <h1 className="text-lg font-semibold">Couldn&apos;t load this goal</h1>
           <p className="text-sm text-muted-foreground">{error}</p>

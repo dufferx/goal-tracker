@@ -189,7 +189,7 @@ describe('M2 goals web flows', () => {
     render(<App auth={authMock()} api={api} />);
 
     const navigation = await screen.findByRole('navigation', { name: 'Mobile' });
-    const add = within(navigation).getByRole('button', { name: 'Add contribution' });
+    const add = await within(navigation).findByRole('button', { name: 'Add contribution' });
     expect(add).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '+ Add' })).not.toBeInTheDocument();
 
@@ -276,7 +276,7 @@ describe('M2 goals web flows', () => {
 
     render(<App auth={authMock()} api={apiMock({ createGoal })} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Create my first goal' }));
-    expect(screen.getByRole('radio', { name: /An amount/ })).toHaveAttribute(
+    expect(await screen.findByRole('radio', { name: /An amount/ })).toHaveAttribute(
       'data-state',
       'checked',
     );

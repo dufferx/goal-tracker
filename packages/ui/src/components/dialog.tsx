@@ -38,10 +38,14 @@ export function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
 }) {
+  const returnFocusRef = React.useRef<HTMLElement | null>(null);
+
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -53,6 +57,18 @@ export function DialogContent({
             'duration-[var(--gt-duration-surface)] ease-[var(--gt-ease-graphite)] sm:max-w-lg',
           className,
         )}
+        onOpenAutoFocus={(event) => {
+          returnFocusRef.current =
+            document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          onOpenAutoFocus?.(event);
+        }}
+        onCloseAutoFocus={(event) => {
+          onCloseAutoFocus?.(event);
+          if (!event.defaultPrevented && returnFocusRef.current) {
+            event.preventDefault();
+            returnFocusRef.current.focus();
+          }
+        }}
         {...props}
       >
         {children}

@@ -63,13 +63,12 @@ function memoryRepository(snapshot = baseSnapshot()): FinancialRepository {
     if ('fixedTargetMinor' in command && command.fixedTargetMinor !== undefined)
       snapshot.goal.fixedTargetMinor = command.fixedTargetMinor;
     if (command.type === 'insert') {
-      const stamp = new Date(Date.parse('2026-07-31T12:00:00.000Z') + snapshot.transactions.length);
       snapshot.transactions.push({
         ...command.transaction,
         ownerId,
         goalId,
-        createdAt: stamp,
-        updatedAt: stamp,
+        createdAt: command.createdAt,
+        updatedAt: command.createdAt,
       });
     } else if (command.type === 'update') {
       const row = snapshot.transactions.find((entry) => entry.id === command.transactionId)!;
@@ -111,6 +110,29 @@ describe('FinancialService', () => {
     expect((await service.history(ownerId, goalId)).totals).toMatchObject({
       spent: '0.00',
       available: '700.00',
+    });
+  });
+
+  it('orders dependent entries deterministically when the clock does not advance', async () => {
+    const service = createFinancialService(memoryRepository(), {
+      now: () => new Date('2026-07-31T12:00:00.000Z'),
+    });
+    await service.create(ownerId, goalId, {
+      kind: 'contribution',
+      amount: '700.00',
+      effectiveDate: '2026-07-31',
+    });
+    const purchase = await service.purchase(ownerId, goalId, itemId, {
+      amount: '560.00',
+      effectiveDate: '2026-07-31',
+    });
+
+    await expect(
+      service.undo(ownerId, goalId, purchase.transaction!.id, {
+        effectiveDate: '2026-07-31',
+      }),
+    ).resolves.toMatchObject({
+      totals: { funded: '700.00', spent: '0.00', available: '700.00' },
     });
   });
 

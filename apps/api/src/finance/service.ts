@@ -173,6 +173,15 @@ export function createFinancialService(
     return proposal;
   }
 
+  function nextCreatedAt(snapshot: FinancialSnapshot) {
+    const requested = now().getTime();
+    const latest = snapshot.transactions.reduce(
+      (maximum, transaction) => Math.max(maximum, transaction.createdAt.getTime()),
+      Number.NEGATIVE_INFINITY,
+    );
+    return new Date(Math.max(requested, latest + 1));
+  }
+
   function fixedTargetAfterPurchase(
     snapshot: FinancialSnapshot,
     nextRows: FinancialTransactionRecord[],
@@ -231,9 +240,9 @@ export function createFinancialService(
       requireNotFuture(request.effectiveDate);
       const id = newFinancialTransactionId();
       const amountMinor = parseAmount(request.amount);
-      const created = now();
       const next = await repository.runLockedMutation(ownerId, goalId, (snapshot) => {
         assertActive(snapshot);
+        const created = nextCreatedAt(snapshot);
         const row: FinancialTransactionRecord = {
           id,
           ownerId,
@@ -249,6 +258,7 @@ export function createFinancialService(
         proposed(snapshot, [...snapshot.transactions, row]);
         return {
           type: 'insert',
+          createdAt: created,
           transaction: {
             id,
             kind: request.kind,
@@ -328,9 +338,9 @@ export function createFinancialService(
       requireNotFuture(request.effectiveDate);
       const id = newFinancialTransactionId();
       const amountMinor = parseAmount(request.amount);
-      const created = now();
       const next = await repository.runLockedMutation(ownerId, goalId, (snapshot) => {
         assertActive(snapshot);
+        const created = nextCreatedAt(snapshot);
         if (!snapshot.items.some((item) => item.id === itemId))
           throw new FinancialServiceError('ITEM_NOT_FOUND', 'Item not found.', 404);
         const row: FinancialTransactionRecord = {
@@ -350,6 +360,7 @@ export function createFinancialService(
         proposed(snapshot, rows, fixedTargetMinor);
         return {
           type: 'insert',
+          createdAt: created,
           transaction: {
             id,
             kind: 'purchase',
@@ -367,9 +378,9 @@ export function createFinancialService(
     async undo(ownerId: string, goalId: string, purchaseId: string, request: UndoPurchaseRequest) {
       requireNotFuture(request.effectiveDate);
       const id = newFinancialTransactionId();
-      const created = now();
       const next = await repository.runLockedMutation(ownerId, goalId, (snapshot) => {
         assertActive(snapshot);
+        const created = nextCreatedAt(snapshot);
         const purchase = snapshot.transactions.find(
           (item) => item.id === purchaseId && item.kind === 'purchase',
         );
@@ -390,6 +401,7 @@ export function createFinancialService(
         proposed(snapshot, [...snapshot.transactions, row]);
         return {
           type: 'insert',
+          createdAt: created,
           transaction: {
             id,
             kind: 'purchase_undo',
