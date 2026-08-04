@@ -9,6 +9,14 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@goal-tracker/ui/components/drawer';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@goal-tracker/ui/components/dialog';
 import { Input } from '@goal-tracker/ui/components/input';
 import { Label } from '@goal-tracker/ui/components/label';
 import {
@@ -29,6 +37,7 @@ import type {
 import { type FormEvent, useEffect, useState } from 'react';
 
 import { AppShell } from './components/app-shell';
+import { useDesktopLayout } from './components/use-desktop-layout';
 import { AuthShell, PageHeader } from './components/auth-shell';
 import { GoalsDashboard } from './features/goals/dashboard';
 import { GoalCreatePage } from './features/goals/goal-create';
@@ -586,6 +595,7 @@ function GoalsHome({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedGoalId, setSelectedGoalId] = useState('');
   const [contributionGoal, setContributionGoal] = useState<GoalDetail>();
+  const desktop = useDesktopLayout();
 
   async function openContribution() {
     const active = list?.active ?? [];
@@ -631,11 +641,44 @@ function GoalsHome({
     );
   }
 
+  const chooseGoal = (
+    <Select value={selectedGoalId} onValueChange={setSelectedGoalId}>
+      <SelectTrigger aria-label="Goal">
+        <SelectValue placeholder="Choose a goal" />
+      </SelectTrigger>
+      <SelectContent>
+        {list?.active.map((goal) => (
+          <SelectItem key={goal.id} value={goal.id}>
+            {goal.name} · {goal.currency}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+  const continueContribution = (
+    <Button
+      disabled={!selectedGoalId}
+      onClick={() =>
+        void api.getGoal(session, selectedGoalId).then((goal) => {
+          setContributionGoal(goal);
+          setPickerOpen(false);
+        })
+      }
+    >
+      Continue
+    </Button>
+  );
+
   return (
     <AppShell
       active="goals"
       onNavigateGoals={onNavigateGoals}
       onNavigateSettings={onNavigateSettings}
+      rail={{
+        kind: 'product',
+        activeCount: list?.active.length,
+        archivedCount: list?.archived.length,
+      }}
       {...((list?.active.length ?? 0) > 0
         ? { onAddContribution: () => void openContribution() }
         : {})}
@@ -651,41 +694,29 @@ function GoalsHome({
         onOpenGoal={onOpenGoal}
         onOpenItems={onOpenItems}
       />
-      <Drawer open={pickerOpen} onOpenChange={setPickerOpen}>
-        <DrawerContent className="mx-auto max-w-[390px] rounded-t-[22px] border-border bg-raised shadow-sheet">
-          <DrawerHeader>
-            <DrawerTitle>Add contribution</DrawerTitle>
-            <DrawerDescription>Choose the goal that receives this money.</DrawerDescription>
-          </DrawerHeader>
-          <div className="px-4">
-            <Select value={selectedGoalId} onValueChange={setSelectedGoalId}>
-              <SelectTrigger aria-label="Goal">
-                <SelectValue placeholder="Choose a goal" />
-              </SelectTrigger>
-              <SelectContent>
-                {list?.active.map((goal) => (
-                  <SelectItem key={goal.id} value={goal.id}>
-                    {goal.name} · {goal.currency}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <DrawerFooter>
-            <Button
-              disabled={!selectedGoalId}
-              onClick={() =>
-                void api.getGoal(session, selectedGoalId).then((goal) => {
-                  setContributionGoal(goal);
-                  setPickerOpen(false);
-                })
-              }
-            >
-              Continue
-            </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+      {desktop ? (
+        <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+          <DialogContent className="max-w-[480px]" showCloseButton={false}>
+            <DialogHeader>
+              <DialogTitle>Add contribution</DialogTitle>
+              <DialogDescription>Choose the goal that receives this money.</DialogDescription>
+            </DialogHeader>
+            {chooseGoal}
+            <DialogFooter>{continueContribution}</DialogFooter>
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Drawer open={pickerOpen} onOpenChange={setPickerOpen}>
+          <DrawerContent className="mx-auto max-w-[390px] rounded-t-[22px] border-border bg-raised shadow-sheet">
+            <DrawerHeader>
+              <DrawerTitle>Add contribution</DrawerTitle>
+              <DrawerDescription>Choose the goal that receives this money.</DrawerDescription>
+            </DrawerHeader>
+            <div className="px-4">{chooseGoal}</div>
+            <DrawerFooter>{continueContribution}</DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      )}
       {contributionGoal ? (
         <ContributionDrawer
           open
@@ -965,7 +996,26 @@ function AuthenticatedApp({
   onSessionExpired: () => void;
 }) {
   const [profile, setProfile] = useState<Profile>();
+  const [goalContributionSignal, setGoalContributionSignal] = useState(0);
+  const [goalEditSignal, setGoalEditSignal] = useState(0);
+  const [goalContext, setGoalContext] = useState<'overview' | 'items' | 'edit'>('overview');
   const goalId = currentGoalId();
+
+  function goalRail(active: 'overview' | 'items' | 'history' | 'simulator' | 'edit') {
+    return {
+      kind: 'goal' as const,
+      active,
+      onAllGoals: () => navigate('goals'),
+      onOverview: () => goalId && navigate('goal-detail', goalId),
+      onItems: () => goalId && navigate('goal-items', goalId),
+      onHistory: () => goalId && navigate('goal-history', goalId),
+      onSimulator: () => goalId && navigate('goal-simulator', goalId),
+      onEdit: () => {
+        setGoalEditSignal((value) => value + 1);
+        if (goalId) navigate('goal-detail', goalId);
+      },
+    };
+  }
 
   useEffect(() => {
     void api
@@ -997,60 +1047,112 @@ function AuthenticatedApp({
   }
 
   if (route === 'goal-create') {
-    if (!profile) return <SettingsSkeleton />;
+    if (!profile) {
+      return (
+        <AppShell
+          active="goals"
+          contentMode="edge"
+          showMobileNavigation={false}
+          onNavigateGoals={() => navigate('goals')}
+          onNavigateSettings={() => navigate('settings')}
+        >
+          <SettingsSkeleton />
+        </AppShell>
+      );
+    }
     return (
-      <GoalCreatePage
-        api={api}
-        session={session}
-        profile={profile}
-        onCancel={() => navigate('goals')}
-        onCreated={() => navigate('goals')}
-        onSessionExpired={onSessionExpired}
-      />
+      <AppShell
+        active="goals"
+        contentMode="edge"
+        showMobileNavigation={false}
+        onNavigateGoals={() => navigate('goals')}
+        onNavigateSettings={() => navigate('settings')}
+      >
+        <GoalCreatePage
+          api={api}
+          session={session}
+          profile={profile}
+          onCancel={() => navigate('goals')}
+          onCreated={() => navigate('goals')}
+          onSessionExpired={onSessionExpired}
+        />
+      </AppShell>
     );
   }
 
   if ((route === 'goal-detail' || route === 'goal-items') && goalId) {
     return (
-      <GoalDetailPage
-        api={api}
-        session={session}
-        goalId={goalId}
-        initialTab={route === 'goal-items' ? 'items' : 'overview'}
-        onBack={() =>
-          route === 'goal-items' ? navigate('goal-detail', goalId) : navigate('goals')
-        }
-        onOpenOverview={() => navigate('goal-detail', goalId)}
-        onOpenItems={() => navigate('goal-items', goalId)}
-        onOpenHistory={() => navigate('goal-history', goalId)}
-        onOpenSimulator={() => navigate('goal-simulator', goalId)}
-        onOpenSettings={() => navigate('settings')}
-        onDeleted={() => navigate('goals')}
-        onSessionExpired={onSessionExpired}
-      />
+      <AppShell
+        active="goals"
+        contentMode="edge"
+        rail={goalRail(route === 'goal-items' ? 'items' : goalContext)}
+        onNavigateGoals={() => navigate('goals')}
+        onNavigateSettings={() => navigate('settings')}
+        onAddContribution={() => {
+          setGoalContributionSignal((value) => value + 1);
+          navigate('goal-detail', goalId);
+        }}
+      >
+        <GoalDetailPage
+          api={api}
+          session={session}
+          goalId={goalId}
+          initialTab={route === 'goal-items' ? 'items' : 'overview'}
+          contributionSignal={goalContributionSignal}
+          editSignal={goalEditSignal}
+          onContextChange={setGoalContext}
+          onBack={() =>
+            route === 'goal-items' ? navigate('goal-detail', goalId) : navigate('goals')
+          }
+          onOpenOverview={() => navigate('goal-detail', goalId)}
+          onOpenItems={() => navigate('goal-items', goalId)}
+          onOpenHistory={() => navigate('goal-history', goalId)}
+          onOpenSimulator={() => navigate('goal-simulator', goalId)}
+          onDeleted={() => navigate('goals')}
+          onSessionExpired={onSessionExpired}
+        />
+      </AppShell>
     );
   }
 
   if (route === 'goal-simulator' && goalId) {
     return (
-      <SimulatorPage
-        api={api}
-        session={session}
-        goalId={goalId}
-        onBack={() => navigate('goal-detail', goalId)}
-      />
+      <AppShell
+        active="goals"
+        contentMode="edge"
+        showMobileNavigation={false}
+        rail={goalRail('simulator')}
+        onNavigateGoals={() => navigate('goals')}
+        onNavigateSettings={() => navigate('settings')}
+      >
+        <SimulatorPage
+          api={api}
+          session={session}
+          goalId={goalId}
+          onBack={() => navigate('goal-detail', goalId)}
+        />
+      </AppShell>
     );
   }
 
   if (route === 'goal-history' && goalId) {
     return (
-      <FinancialHistoryPage
-        api={api}
-        session={session}
-        goalId={goalId}
-        onBack={() => navigate('goal-detail', goalId)}
-        onChanged={() => undefined}
-      />
+      <AppShell
+        active="goals"
+        contentMode="edge"
+        showMobileNavigation={false}
+        rail={goalRail('history')}
+        onNavigateGoals={() => navigate('goals')}
+        onNavigateSettings={() => navigate('settings')}
+      >
+        <FinancialHistoryPage
+          api={api}
+          session={session}
+          goalId={goalId}
+          onBack={() => navigate('goal-detail', goalId)}
+          onChanged={() => undefined}
+        />
+      </AppShell>
     );
   }
 

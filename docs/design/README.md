@@ -39,6 +39,9 @@ from the immutable design references:
 - [M3 implementation captures and comparison notes](implementation/m3/)
 - [M4 implementation captures and visual acceptance](implementation/m4/)
 - [M2.1 surface and state matrix](M2_1_Surface_Matrix.md)
+- [M5A responsive surface matrix](M5A_Surface_Matrix.md)
+- [M5A before baseline captures](implementation/m5a/before/)
+- [M5A responsive implementation evidence](implementation/m5a/)
 
 These captures are evidence for comparison, not a new design source. A milestone is not visually
 complete when this evidence is missing or stale.
@@ -99,7 +102,13 @@ M5A preserves all mobile references above and implements these wider composition
 | [Desktop goal detail](reference/m5/desktop-goal-detail.png) | G-01 desktop | rail, sticky summary, items and history |
 
 M5A implementation evidence belongs under `implementation/m5a/`. Both 390px mobile regression
-captures and 1280px desktop captures require explicit visual acceptance before M5B begins.
+captures and 1280px desktop captures were explicitly accepted on 2026-08-04. The M5A visual gate
+is closed.
+
+Discovery and acceptance criteria are recorded in
+[`GoalTracker_M5A_Responsive_Requirements.md`](../GoalTracker_M5A_Responsive_Requirements.md).
+The approved build sequence is recorded in
+[`GoalTracker_M5A_Responsive_Implementation_Plan.md`](../GoalTracker_M5A_Responsive_Implementation_Plan.md).
 
 ### M5B — Integrated UX and accessibility
 

@@ -17,14 +17,6 @@ import {
 import { Badge } from '@goal-tracker/ui/components/badge';
 import { Button } from '@goal-tracker/ui/components/button';
 import { Card, CardContent } from '@goal-tracker/ui/components/card';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from '@goal-tracker/ui/components/drawer';
 import { Input } from '@goal-tracker/ui/components/input';
 import { Label } from '@goal-tracker/ui/components/label';
 import { RadioGroup, RadioGroupItem } from '@goal-tracker/ui/components/radio-group';
@@ -49,7 +41,7 @@ import {
   normalizeMoneyInput,
 } from '../../lib/format';
 import { MoneyInput } from '../../components/money-input';
-import { MobileNavigation } from '../../components/app-shell';
+import { ResponsiveOverlay } from '../../components/responsive-overlay';
 import { FinancialOverview } from './financial';
 
 const months = monthOptions(2025, 6);
@@ -64,9 +56,11 @@ export function GoalDetailPage({
   onOpenItems,
   onOpenHistory,
   onOpenSimulator,
-  onOpenSettings,
   onDeleted,
   onSessionExpired,
+  contributionSignal = 0,
+  editSignal = 0,
+  onContextChange,
 }: {
   api: GoalTrackerApi;
   session: AuthSession;
@@ -77,9 +71,11 @@ export function GoalDetailPage({
   onOpenItems: () => void;
   onOpenHistory: () => void;
   onOpenSimulator: () => void;
-  onOpenSettings: () => void;
   onDeleted: () => void;
   onSessionExpired: () => void;
+  contributionSignal?: number;
+  editSignal?: number;
+  onContextChange?: (context: 'overview' | 'items' | 'edit') => void;
 }) {
   const [goal, setGoal] = useState<GoalDetail>();
   const [tab, setTab] = useState<'overview' | 'items' | 'settings'>(initialTab);
@@ -87,16 +83,22 @@ export function GoalDetailPage({
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string>();
-  const [contributionSignal, setContributionSignal] = useState(0);
 
   function showOverview() {
     setTab('overview');
+    onContextChange?.('overview');
     onOpenOverview();
   }
 
   function showItems() {
     setTab('items');
+    onContextChange?.('items');
     onOpenItems();
+  }
+
+  function showSettings() {
+    setTab('settings');
+    onContextChange?.('edit');
   }
 
   async function load() {
@@ -123,7 +125,12 @@ export function GoalDetailPage({
   // back/forward) — the same component instance serves both detail routes.
   useEffect(() => {
     setTab(initialTab);
+    onContextChange?.(initialTab === 'items' ? 'items' : 'overview');
   }, [initialTab]);
+
+  useEffect(() => {
+    if (editSignal) showSettings();
+  }, [editSignal]);
 
   if (loading) {
     return (
@@ -155,12 +162,18 @@ export function GoalDetailPage({
   }
 
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-[390px] space-y-4 px-4 pb-28 pt-3">
-      <div className="grid grid-cols-[44px_1fr_64px] items-center gap-2">
-        <Button type="button" variant="ghost" className="px-2" onClick={onBack} aria-label="Back">
+    <div className="mx-auto min-h-dvh w-full max-w-[390px] space-y-4 px-4 pb-28 pt-3 lg:min-h-0 lg:max-w-none lg:px-0 lg:pb-8 lg:pt-0">
+      <div className="grid grid-cols-[44px_1fr_64px] items-center gap-2 lg:block">
+        <Button
+          type="button"
+          variant="ghost"
+          className="px-2 lg:hidden"
+          onClick={onBack}
+          aria-label="Back"
+        >
           <ArrowLeft className="size-4" />
         </Button>
-        <h1 className="truncate text-center text-lg font-semibold">
+        <h1 className="truncate text-center text-lg font-semibold lg:text-left lg:text-[27px] lg:tracking-[-0.025em]">
           {tab === 'overview'
             ? goal.name
             : tab === 'items'
@@ -170,8 +183,8 @@ export function GoalDetailPage({
         <Button
           type="button"
           variant="ghost"
-          className="justify-end px-1"
-          onClick={() => (tab === 'settings' ? showOverview() : setTab('settings'))}
+          className="justify-end px-1 lg:hidden"
+          onClick={() => (tab === 'settings' ? showOverview() : showSettings())}
         >
           {tab === 'settings' ? 'Done' : 'Edit'}
         </Button>
@@ -192,7 +205,7 @@ export function GoalDetailPage({
           onOpenHistory={onOpenHistory}
           onOpenItems={showItems}
           onOpenSimulator={onOpenSimulator}
-          onEditGoal={() => setTab('settings')}
+          onEditGoal={showSettings}
           contributionSignal={contributionSignal}
         />
       ) : tab === 'items' ? (
@@ -220,15 +233,6 @@ export function GoalDetailPage({
           onSaved={showOverview}
         />
       )}
-      <MobileNavigation
-        active="goals"
-        onNavigateGoals={onBack}
-        onNavigateSettings={onOpenSettings}
-        onAddContribution={() => {
-          showOverview();
-          setContributionSignal((value) => value + 1);
-        }}
-      />
     </div>
   );
 }
@@ -360,7 +364,7 @@ function ItemsPanel({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 lg:max-w-[840px]">
       <p className="text-sm text-muted-foreground">
         {goal.targetMode === 'fixed'
           ? `Items share the fixed ${formatMoney(goal.fixedTarget ?? '0.00', goal.currency)} budget.`
@@ -566,86 +570,13 @@ function ItemsPanel({
         )
       ) : null}
 
-      <Drawer
+      <ResponsiveOverlay
         open={Boolean(editingItem)}
         onOpenChange={(open) => !open && setEditingItem(undefined)}
-      >
-        <DrawerContent className="mx-auto max-h-[92dvh] max-w-[390px] rounded-t-[22px] border-border bg-raised shadow-sheet">
-          <DrawerHeader>
-            <DrawerTitle>Edit item</DrawerTitle>
-            <DrawerDescription>
-              Update the planned amount, month, or display order.
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="space-y-4 overflow-y-auto px-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-item-name">Name</Label>
-              <Input
-                id="edit-item-name"
-                value={editName}
-                onChange={(event) => setEditName(event.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-item-price">Expected price</Label>
-              <Input
-                id="edit-item-price"
-                inputMode="decimal"
-                data-money
-                value={editExpectedPrice}
-                onChange={(event) => setEditExpectedPrice(event.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Due month · optional</Label>
-              <Select
-                value={editDueMonth || '__none__'}
-                onValueChange={(value) => setEditDueMonth(value === '__none__' ? '' : value)}
-              >
-                <SelectTrigger aria-label="Edit due month">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">No due month</SelectItem>
-                  {months.map((month) => (
-                    <SelectItem key={month.value} value={month.value}>
-                      {month.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={
-                  pending ||
-                  !editingItem ||
-                  goal.items.findIndex((item) => item.id === editingItem.id) === 0
-                }
-                onClick={() => editingItem && void move(editingItem.id, -1)}
-              >
-                <ChevronUp aria-hidden="true" className="size-4" />
-                Move up
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={
-                  pending ||
-                  !editingItem ||
-                  goal.items.findIndex((item) => item.id === editingItem.id) ===
-                    goal.items.length - 1
-                }
-                onClick={() => editingItem && void move(editingItem.id, 1)}
-              >
-                <ChevronDown aria-hidden="true" className="size-4" />
-                Move down
-              </Button>
-            </div>
-          </div>
-          <DrawerFooter>
+        title="Edit item"
+        description="Update the planned amount, month, or display order."
+        footer={
+          <>
             <Button
               type="button"
               disabled={pending || !editName.trim() || !editExpectedPrice.trim()}
@@ -666,9 +597,77 @@ function ItemsPanel({
             >
               Delete item
             </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+          </>
+        }
+      >
+        <div className="space-y-4 overflow-y-auto px-4 lg:px-0">
+          <div className="space-y-2">
+            <Label htmlFor="edit-item-name">Name</Label>
+            <Input
+              id="edit-item-name"
+              value={editName}
+              onChange={(event) => setEditName(event.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-item-price">Expected price</Label>
+            <Input
+              id="edit-item-price"
+              inputMode="decimal"
+              data-money
+              value={editExpectedPrice}
+              onChange={(event) => setEditExpectedPrice(event.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Due month · optional</Label>
+            <Select
+              value={editDueMonth || '__none__'}
+              onValueChange={(value) => setEditDueMonth(value === '__none__' ? '' : value)}
+            >
+              <SelectTrigger aria-label="Edit due month">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">No due month</SelectItem>
+                {months.map((month) => (
+                  <SelectItem key={month.value} value={month.value}>
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={
+                pending ||
+                !editingItem ||
+                goal.items.findIndex((item) => item.id === editingItem.id) === 0
+              }
+              onClick={() => editingItem && void move(editingItem.id, -1)}
+            >
+              <ChevronUp aria-hidden="true" className="size-4" />
+              Move up
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={
+                pending ||
+                !editingItem ||
+                goal.items.findIndex((item) => item.id === editingItem.id) === goal.items.length - 1
+              }
+              onClick={() => editingItem && void move(editingItem.id, 1)}
+            >
+              <ChevronDown aria-hidden="true" className="size-4" />
+              Move down
+            </Button>
+          </div>
+        </div>
+      </ResponsiveOverlay>
 
       <AlertDialog
         open={Boolean(deleteId)}
@@ -862,7 +861,7 @@ function SettingsPanel({
   }
 
   return (
-    <form className="space-y-4" onSubmit={(event) => void onSubmit(event)}>
+    <form className="space-y-4 lg:max-w-[640px]" onSubmit={(event) => void onSubmit(event)}>
       <div className="space-y-2">
         <Label htmlFor="edit-name">Name</Label>
         <Input

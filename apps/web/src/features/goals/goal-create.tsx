@@ -199,7 +199,7 @@ export function GoalCreatePage({
 
   return (
     <form
-      className="mx-auto min-h-dvh w-full max-w-[390px] space-y-4 px-[17px] pb-8 pt-3"
+      className="mx-auto min-h-dvh w-full max-w-[390px] space-y-4 px-[17px] pb-8 pt-3 lg:min-h-0 lg:max-w-[680px] lg:px-0 lg:pt-0"
       onSubmit={onSubmit}
     >
       <div className="flex items-center justify-between gap-3">

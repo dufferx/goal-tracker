@@ -22,6 +22,14 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@goal-tracker/ui/components/drawer';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@goal-tracker/ui/components/dialog';
 import { Label } from '@goal-tracker/ui/components/label';
 import { Progress } from '@goal-tracker/ui/components/progress';
 import {
@@ -34,6 +42,8 @@ import {
 import { ArrowLeft, Check, MoreHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { MoneyInput } from '../../components/money-input';
+import { ResponsiveOverlay } from '../../components/responsive-overlay';
+import { useDesktopLayout } from '../../components/use-desktop-layout';
 import { ApiRequestError, type GoalTrackerApi } from '../../lib/api';
 import type { AuthSession } from '../../lib/auth';
 import {
@@ -154,6 +164,108 @@ export function ContributionDrawer({
   const availableAfter =
     amountNumber(goal.derived.financial.available) +
     (kind === 'contribution' ? amountNumber(amount) : -amountNumber(amount));
+  const desktop = useDesktopLayout();
+  const form = (
+    <div className="space-y-5 overflow-y-auto px-4 lg:px-0">
+      <div className="grid grid-cols-2 rounded-control bg-control p-1">
+        <Button
+          variant={kind === 'contribution' ? 'default' : 'ghost'}
+          onClick={() => setKind('contribution')}
+          disabled={pending}
+        >
+          Add
+        </Button>
+        <Button
+          variant={kind === 'withdrawal' ? 'default' : 'ghost'}
+          onClick={() => setKind('withdrawal')}
+          disabled={pending}
+        >
+          Withdraw
+        </Button>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="financial-amount">Amount</Label>
+        <MoneyInput
+          id="financial-amount"
+          value={amount}
+          onChange={(event) => setAmount(event.target.value)}
+          currency={goal.currency}
+          autoFocus
+          disabled={pending || reconciling}
+          className="h-[78px] text-center text-4xl font-semibold"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="financial-date">Date</Label>
+        <DatePicker
+          id="financial-date"
+          label="Date"
+          maxDate={dateFromIso(today())}
+          value={dateFromIso(date)}
+          onChange={(value) => setDate(isoFromDate(value))}
+          disabled={pending || reconciling}
+        />
+      </div>
+      {amount ? (
+        <p className="text-center text-sm text-text-secondary">
+          Available after {kind === 'contribution' ? 'contribution' : 'withdrawal'} ·{' '}
+          <span data-money>
+            {formatMoney(String(Math.max(0, availableAfter).toFixed(2)), goal.currency)}
+          </span>
+        </p>
+      ) : null}
+      {error ? (
+        <Alert variant={unknownResult ? 'default' : 'error'}>
+          <AlertTitle>
+            {reconciling
+              ? 'Checking what happened'
+              : unknownResult
+                ? 'Result unknown'
+                : 'Not saved'}
+          </AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+    </div>
+  );
+  const actions = (
+    <>
+      <Button disabled={pending || reconciling || !amount || !date} onClick={() => void submit()}>
+        {pending || reconciling
+          ? 'Checking…'
+          : `${kind === 'contribution' ? 'Add' : 'Withdraw'} ${amount ? formatMoney(normalizeMoneyInput(amount), goal.currency) : ''}`}
+      </Button>
+      <Button
+        variant="outline"
+        disabled={pending || reconciling}
+        onClick={() => onOpenChange(false)}
+      >
+        Cancel
+      </Button>
+    </>
+  );
+  if (desktop) {
+    return (
+      <Dialog open={open} onOpenChange={(next) => !pending && !reconciling && onOpenChange(next)}>
+        <DialogContent
+          className="max-h-[90dvh] max-w-[480px] overflow-y-auto"
+          showCloseButton={false}
+        >
+          <DialogHeader>
+            <div className="flex items-center justify-between gap-3">
+              <DialogTitle>{kind === 'contribution' ? 'Add contribution' : 'Withdraw'}</DialogTitle>
+              <span className="text-sm text-text-secondary">{goal.name}</span>
+            </div>
+            <DialogDescription className="sr-only">
+              Record real money for this goal.
+            </DialogDescription>
+          </DialogHeader>
+          {form}
+          <DialogFooter className="grid grid-cols-[1fr_auto] gap-2">{actions}</DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
   return (
     <Drawer open={open} onOpenChange={(next) => !pending && !reconciling && onOpenChange(next)}>
       <DrawerContent className="mx-auto max-h-[92dvh] max-w-[390px] rounded-t-[22px] border-border bg-raised shadow-sheet">
@@ -166,84 +278,8 @@ export function ContributionDrawer({
             Record real money for this goal.
           </DrawerDescription>
         </DrawerHeader>
-        <div className="space-y-5 overflow-y-auto px-4">
-          <div className="grid grid-cols-2 rounded-control bg-control p-1">
-            <Button
-              variant={kind === 'contribution' ? 'default' : 'ghost'}
-              onClick={() => setKind('contribution')}
-              disabled={pending}
-            >
-              Add
-            </Button>
-            <Button
-              variant={kind === 'withdrawal' ? 'default' : 'ghost'}
-              onClick={() => setKind('withdrawal')}
-              disabled={pending}
-            >
-              Withdraw
-            </Button>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="financial-amount">Amount</Label>
-            <MoneyInput
-              id="financial-amount"
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              currency={goal.currency}
-              autoFocus
-              disabled={pending || reconciling}
-              className="h-[78px] text-center text-4xl font-semibold"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="financial-date">Date</Label>
-            <DatePicker
-              id="financial-date"
-              label="Date"
-              maxDate={dateFromIso(today())}
-              value={dateFromIso(date)}
-              onChange={(value) => setDate(isoFromDate(value))}
-              disabled={pending || reconciling}
-            />
-          </div>
-          {amount ? (
-            <p className="text-center text-sm text-text-secondary">
-              Available after {kind === 'contribution' ? 'contribution' : 'withdrawal'} ·{' '}
-              <span data-money>
-                {formatMoney(String(Math.max(0, availableAfter).toFixed(2)), goal.currency)}
-              </span>
-            </p>
-          ) : null}
-          {error ? (
-            <Alert variant={unknownResult ? 'default' : 'error'}>
-              <AlertTitle>
-                {reconciling
-                  ? 'Checking what happened'
-                  : unknownResult
-                    ? 'Result unknown'
-                    : 'Not saved'}
-              </AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
-        </div>
-        <DrawerFooter className="grid grid-cols-[1fr_auto] gap-2">
-          <Button
-            disabled={pending || reconciling || !amount || !date}
-            onClick={() => void submit()}
-          >
-            {pending || reconciling
-              ? 'Checking…'
-              : `${kind === 'contribution' ? 'Add' : 'Withdraw'} ${amount ? formatMoney(normalizeMoneyInput(amount), goal.currency) : ''}`}
-          </Button>
-          <Button
-            variant="outline"
-            disabled={pending || reconciling}
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-        </DrawerFooter>
+        {form}
+        <DrawerFooter className="grid grid-cols-[1fr_auto] gap-2">{actions}</DrawerFooter>
       </DrawerContent>
     </Drawer>
   );
@@ -314,6 +350,116 @@ export function PurchaseDrawer({
       setPending(false);
     }
   }
+  const desktop = useDesktopLayout();
+  const content = (
+    <div className="space-y-4 overflow-y-auto px-4 lg:px-0">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="purchase-price">What you paid</Label>
+          <MoneyInput
+            id="purchase-price"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            currency={goal.currency}
+            disabled={pending || reconciling}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="purchase-date">Date</Label>
+          <DatePicker
+            id="purchase-date"
+            label="Date"
+            maxDate={dateFromIso(today())}
+            value={dateFromIso(date)}
+            onChange={(value) => setDate(isoFromDate(value))}
+            disabled={pending || reconciling}
+          />
+        </div>
+      </div>
+      <Card className="bg-control">
+        <CardContent className="space-y-2 p-3 text-sm">
+          <p className="text-text-secondary">What changes</p>
+          <div className="flex justify-between">
+            <span>Available</span>
+            <span data-money>
+              {formatMoney(goal.derived.financial.available, goal.currency)} →{' '}
+              {formatMoney(
+                String(
+                  Math.max(
+                    0,
+                    amountNumber(goal.derived.financial.available) - amountNumber(amount),
+                  ).toFixed(2),
+                ),
+                goal.currency,
+              )}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+      {!enough && amount ? (
+        <Alert variant="error">
+          <AlertTitle>Not enough available</AlertTitle>
+          <AlertDescription>
+            This item costs {formatMoney(normalizeMoneyInput(amount), goal.currency)} and you have{' '}
+            {formatMoney(goal.derived.financial.available, goal.currency)} available.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {error ? (
+        <Alert variant={unknownResult ? 'default' : 'error'}>
+          <AlertTitle>{unknownResult ? 'Result unknown' : 'Purchase not saved'}</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+      {overageRequired ? (
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant="outline"
+            disabled={pending || reconciling}
+            onClick={() => void save('keep_target')}
+          >
+            Keep target
+          </Button>
+          <Button disabled={pending || reconciling} onClick={() => void save('increase_target')}>
+            Increase target
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+  const actions = (
+    <>
+      <Button
+        disabled={pending || reconciling || !amount || !date || !enough || overageRequired}
+        onClick={() => void save()}
+      >
+        {pending || reconciling ? 'Checking…' : 'Record purchase'}
+      </Button>
+      <Button variant="outline" disabled={pending || reconciling} onClick={onClose}>
+        Cancel
+      </Button>
+    </>
+  );
+  if (desktop) {
+    return (
+      <Dialog
+        open={Boolean(item)}
+        onOpenChange={(open) => !open && !pending && !reconciling && onClose()}
+      >
+        <DialogContent
+          className="max-h-[90dvh] max-w-[480px] overflow-y-auto"
+          showCloseButton={false}
+        >
+          <DialogHeader>
+            <DialogTitle>{item ? `Buy ${item.name}` : 'Buy item'}</DialogTitle>
+            <DialogDescription>The actual price replaces the estimate.</DialogDescription>
+          </DialogHeader>
+          {content}
+          <DialogFooter>{actions}</DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
   return (
     <Drawer
       open={Boolean(item)}
@@ -324,94 +470,8 @@ export function PurchaseDrawer({
           <DrawerTitle>{item ? `Buy ${item.name}` : 'Buy item'}</DrawerTitle>
           <DrawerDescription>The actual price replaces the estimate.</DrawerDescription>
         </DrawerHeader>
-        <div className="space-y-4 overflow-y-auto px-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="purchase-price">What you paid</Label>
-              <MoneyInput
-                id="purchase-price"
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
-                currency={goal.currency}
-                disabled={pending || reconciling}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="purchase-date">Date</Label>
-              <DatePicker
-                id="purchase-date"
-                label="Date"
-                maxDate={dateFromIso(today())}
-                value={dateFromIso(date)}
-                onChange={(value) => setDate(isoFromDate(value))}
-                disabled={pending || reconciling}
-              />
-            </div>
-          </div>
-          <Card className="bg-control">
-            <CardContent className="space-y-2 p-3 text-sm">
-              <p className="text-text-secondary">What changes</p>
-              <div className="flex justify-between">
-                <span>Available</span>
-                <span data-money>
-                  {formatMoney(goal.derived.financial.available, goal.currency)} →{' '}
-                  {formatMoney(
-                    String(
-                      Math.max(
-                        0,
-                        amountNumber(goal.derived.financial.available) - amountNumber(amount),
-                      ).toFixed(2),
-                    ),
-                    goal.currency,
-                  )}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-          {!enough && amount ? (
-            <Alert variant="error">
-              <AlertTitle>Not enough available</AlertTitle>
-              <AlertDescription>
-                This item costs {formatMoney(normalizeMoneyInput(amount), goal.currency)} and you
-                have {formatMoney(goal.derived.financial.available, goal.currency)} available.
-              </AlertDescription>
-            </Alert>
-          ) : null}
-          {error ? (
-            <Alert variant={unknownResult ? 'default' : 'error'}>
-              <AlertTitle>{unknownResult ? 'Result unknown' : 'Purchase not saved'}</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
-          {overageRequired ? (
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                disabled={pending || reconciling}
-                onClick={() => void save('keep_target')}
-              >
-                Keep target
-              </Button>
-              <Button
-                disabled={pending || reconciling}
-                onClick={() => void save('increase_target')}
-              >
-                Increase target
-              </Button>
-            </div>
-          ) : null}
-        </div>
-        <DrawerFooter>
-          <Button
-            disabled={pending || reconciling || !amount || !date || !enough || overageRequired}
-            onClick={() => void save()}
-          >
-            {pending || reconciling ? 'Checking…' : 'Record purchase'}
-          </Button>
-          <Button variant="outline" disabled={pending || reconciling} onClick={onClose}>
-            Cancel
-          </Button>
-        </DrawerFooter>
+        {content}
+        <DrawerFooter>{actions}</DrawerFooter>
       </DrawerContent>
     </Drawer>
   );
@@ -511,179 +571,189 @@ export function FinancialOverview({
           <AlertTitle>{message}</AlertTitle>
         </Alert>
       ) : null}
-      <div className="space-y-2">
-        <p className="text-sm text-text-secondary">
-          {goal.targetMode === 'fixed' ? 'Fixed target' : 'Item-derived target'} · {goal.currency}
-        </p>
-      </div>
-      {goal.status !== 'active' ? (
-        <Alert>
-          <AlertTitle>Archived goal</AlertTitle>
-          <AlertDescription>Restore it before recording money.</AlertDescription>
-        </Alert>
-      ) : null}
-      <GuidanceCard
-        goal={goal}
-        onAddContribution={() => setContribute(true)}
-        onEditGoal={onEditGoal}
-        onOpenItems={onOpenItems}
-        embedded
-      />
-      <Card>
-        <CardContent className="space-y-4 p-4">
-          <div className="flex items-end justify-between gap-3">
-            <span className="text-sm text-text-secondary">Funded</span>
-            <span>
-              <strong data-money className="text-xl">
-                {formatMoney(goal.derived.financial.funded, goal.currency)}
-              </strong>{' '}
-              <span className="text-sm text-text-tertiary">
-                of{' '}
-                {goal.derived.currentTarget
-                  ? formatMoney(goal.derived.currentTarget, goal.currency)
-                  : 'target pending'}
-              </span>
-            </span>
+      <div className="space-y-4 lg:grid lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:items-start lg:gap-8 lg:space-y-0">
+        <div className="space-y-4 lg:sticky lg:top-6">
+          <div className="space-y-2">
+            <p className="text-sm text-text-secondary">
+              {goal.targetMode === 'fixed' ? 'Fixed target' : 'Item-derived target'} ·{' '}
+              {goal.currency}
+            </p>
           </div>
-          <Progress value={progress} aria-label={`${Math.round(progress)}% funded`} />
-          <p className="text-sm text-text-secondary">
-            {formatMoney(goal.derived.financial.available, goal.currency)} available
-            <span className="float-right">
-              {formatMoney(goal.derived.financial.spent, goal.currency)} spent ·{' '}
-              {goal.derived.financial.remaining
-                ? formatMoney(goal.derived.financial.remaining, goal.currency)
-                : '—'}{' '}
-              remaining
-            </span>
-          </p>
-          {goal.guidance.recommendation ? (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-4 border-t border-hairline pt-4">
-              <Metric
-                label="Per contribution"
-                value={goal.guidance.recommendation.perContribution}
-                currency={goal.currency}
-                accent
-              />
-              <Metric
-                label="Monthly"
-                value={goal.guidance.recommendation.monthly}
-                currency={goal.currency}
-              />
-              <Metric
-                label="Next obligation"
-                value={
-                  goal.guidance.obligation
-                    ? formatBusinessMonthLabel(goal.guidance.obligation.dueMonth)
-                    : goal.guidance.forecastMonth
-                      ? formatBusinessMonthLabel(goal.guidance.forecastMonth)
-                      : null
-                }
-              />
-              <Metric
-                label={goal.finalMonth ? 'Final month' : 'Forecast finish'}
-                value={
-                  goal.finalMonth
-                    ? formatBusinessMonthLabel(goal.finalMonth)
-                    : goal.guidance.forecastMonth
-                      ? formatBusinessMonthLabel(goal.guidance.forecastMonth)
-                      : null
-                }
-              />
-            </div>
+          {goal.status !== 'active' ? (
+            <Alert>
+              <AlertTitle>Archived goal</AlertTitle>
+              <AlertDescription>Restore it before recording money.</AlertDescription>
+            </Alert>
           ) : null}
-          <p className="border-t border-hairline pt-3 text-xs text-text-tertiary">
-            {goal.targetMode === 'fixed' ? 'Fixed target' : 'Item-derived target'} · planning from{' '}
-            {formatBusinessMonthLabel(goal.startMonth)}
-          </p>
-        </CardContent>
-      </Card>
-      <PlanningTimeline goal={goal} onOpenItems={onOpenItems} />
-      <Card>
-        <CardContent className="p-0">
-          <div className="flex items-center justify-between gap-3 px-4 py-3">
-            <h2 className="font-semibold">Items</h2>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-text-secondary">{goal.items.length}</span>
-              {goal.status === 'active' ? (
-                <Button variant="ghost" className="min-h-9 px-2" onClick={onOpenItems}>
-                  Manage items
-                </Button>
+          <GuidanceCard
+            goal={goal}
+            onAddContribution={() => setContribute(true)}
+            onEditGoal={onEditGoal}
+            onOpenItems={onOpenItems}
+            embedded
+          />
+          <Card>
+            <CardContent className="space-y-4 p-4">
+              <div className="flex items-end justify-between gap-3">
+                <span className="text-sm text-text-secondary">Funded</span>
+                <span>
+                  <strong data-money className="text-xl">
+                    {formatMoney(goal.derived.financial.funded, goal.currency)}
+                  </strong>{' '}
+                  <span className="text-sm text-text-tertiary">
+                    of{' '}
+                    {goal.derived.currentTarget
+                      ? formatMoney(goal.derived.currentTarget, goal.currency)
+                      : 'target pending'}
+                  </span>
+                </span>
+              </div>
+              <Progress value={progress} aria-label={`${Math.round(progress)}% funded`} />
+              <p className="text-sm text-text-secondary">
+                {formatMoney(goal.derived.financial.available, goal.currency)} available
+                <span className="float-right">
+                  {formatMoney(goal.derived.financial.spent, goal.currency)} spent ·{' '}
+                  {goal.derived.financial.remaining
+                    ? formatMoney(goal.derived.financial.remaining, goal.currency)
+                    : '—'}{' '}
+                  remaining
+                </span>
+              </p>
+              {goal.guidance.recommendation ? (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-4 border-t border-hairline pt-4">
+                  <Metric
+                    label="Per contribution"
+                    value={goal.guidance.recommendation.perContribution}
+                    currency={goal.currency}
+                    accent
+                  />
+                  <Metric
+                    label="Monthly"
+                    value={goal.guidance.recommendation.monthly}
+                    currency={goal.currency}
+                  />
+                  <Metric
+                    label="Next obligation"
+                    value={
+                      goal.guidance.obligation
+                        ? formatBusinessMonthLabel(goal.guidance.obligation.dueMonth)
+                        : goal.guidance.forecastMonth
+                          ? formatBusinessMonthLabel(goal.guidance.forecastMonth)
+                          : null
+                    }
+                  />
+                  <Metric
+                    label={goal.finalMonth ? 'Final month' : 'Forecast finish'}
+                    value={
+                      goal.finalMonth
+                        ? formatBusinessMonthLabel(goal.finalMonth)
+                        : goal.guidance.forecastMonth
+                          ? formatBusinessMonthLabel(goal.guidance.forecastMonth)
+                          : null
+                    }
+                  />
+                </div>
               ) : null}
-            </div>
-          </div>
-          <div className="divide-y divide-hairline">
-            {goal.items.length ? (
-              goal.items.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate font-medium">{item.name}</p>
-                      {item.purchase ? (
-                        <Badge className="border-accent-border bg-accent-surface text-primary">
-                          Purchased
-                        </Badge>
-                      ) : null}
-                    </div>
-                    <p className="text-sm text-text-secondary" data-money>
-                      {item.purchase
-                        ? `${formatMoney(item.purchase.actualPrice, goal.currency)} actual`
-                        : `${formatMoney(item.expectedPrice, goal.currency)} expected`}
-                    </p>
-                  </div>
-                  {item.purchase ? (
-                    <Button
-                      className="min-h-9 px-2"
-                      variant="ghost"
-                      onClick={() => {
-                        setUndoError(undefined);
-                        setUndoUnknownResult(false);
-                        setUndo(item);
-                      }}
-                    >
-                      Undo
-                    </Button>
-                  ) : goal.status === 'active' ? (
-                    <Button
-                      className="min-h-9 px-3"
-                      variant="outline"
-                      disabled={amountNumber(goal.derived.financial.available) <= 0}
-                      onClick={() => setPurchaseItem(item)}
-                    >
-                      Buy
+              <p className="border-t border-hairline pt-3 text-xs text-text-tertiary">
+                {goal.targetMode === 'fixed' ? 'Fixed target' : 'Item-derived target'} · planning
+                from {formatBusinessMonthLabel(goal.startMonth)}
+              </p>
+            </CardContent>
+          </Card>
+          <PlanningTimeline goal={goal} onOpenItems={onOpenItems} />
+        </div>
+        <div className="space-y-4">
+          <Card>
+            <CardContent className="p-0">
+              <div className="flex items-center justify-between gap-3 px-4 py-3">
+                <h2 className="font-semibold">Items</h2>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-text-secondary">{goal.items.length}</span>
+                  {goal.status === 'active' ? (
+                    <Button variant="ghost" className="min-h-9 px-2" onClick={onOpenItems}>
+                      Manage items
                     </Button>
                   ) : null}
                 </div>
-              ))
-            ) : (
-              <p className="px-4 py-5 text-sm text-text-secondary">No planned purchases yet.</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="p-0">
-          <div className="flex items-center justify-between px-4 py-3">
-            <h2 className="font-semibold">Recent history</h2>
-            <Button variant="ghost" className="min-h-9 px-2" onClick={onOpenHistory}>
-              See all
-            </Button>
-          </div>
-          <HistoryRows rows={history?.transactions.slice(0, 3) ?? []} currency={goal.currency} />
-        </CardContent>
-      </Card>
-      <Button
-        variant="outline"
-        className="h-auto min-h-16 w-full justify-between px-4 py-3 text-left"
-        onClick={onOpenSimulator}
-      >
-        <span>
-          <span className="block font-semibold">Try a contribution plan</span>
-          <span className="mt-1 block text-sm text-text-secondary">
-            Preview different amounts without changing this goal.
-          </span>
-        </span>
-        <span className="text-sm font-semibold text-primary">Simulator</span>
-      </Button>
+              </div>
+              <div className="divide-y divide-hairline">
+                {goal.items.length ? (
+                  goal.items.map((item) => (
+                    <div key={item.id} className="flex items-center gap-3 px-4 py-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate font-medium">{item.name}</p>
+                          {item.purchase ? (
+                            <Badge className="border-accent-border bg-accent-surface text-primary">
+                              Purchased
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <p className="text-sm text-text-secondary" data-money>
+                          {item.purchase
+                            ? `${formatMoney(item.purchase.actualPrice, goal.currency)} actual`
+                            : `${formatMoney(item.expectedPrice, goal.currency)} expected`}
+                        </p>
+                      </div>
+                      {item.purchase ? (
+                        <Button
+                          className="min-h-9 px-2"
+                          variant="ghost"
+                          onClick={() => {
+                            setUndoError(undefined);
+                            setUndoUnknownResult(false);
+                            setUndo(item);
+                          }}
+                        >
+                          Undo
+                        </Button>
+                      ) : goal.status === 'active' ? (
+                        <Button
+                          className="min-h-9 px-3"
+                          variant="outline"
+                          disabled={amountNumber(goal.derived.financial.available) <= 0}
+                          onClick={() => setPurchaseItem(item)}
+                        >
+                          Buy
+                        </Button>
+                      ) : null}
+                    </div>
+                  ))
+                ) : (
+                  <p className="px-4 py-5 text-sm text-text-secondary">No planned purchases yet.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-0">
+              <div className="flex items-center justify-between px-4 py-3">
+                <h2 className="font-semibold">Recent history</h2>
+                <Button variant="ghost" className="min-h-9 px-2" onClick={onOpenHistory}>
+                  See all
+                </Button>
+              </div>
+              <HistoryRows
+                rows={history?.transactions.slice(0, 3) ?? []}
+                currency={goal.currency}
+              />
+            </CardContent>
+          </Card>
+          <Button
+            variant="outline"
+            className="h-auto min-h-16 w-full justify-between px-4 py-3 text-left"
+            onClick={onOpenSimulator}
+          >
+            <span>
+              <span className="block font-semibold">Try a contribution plan</span>
+              <span className="mt-1 block text-sm text-text-secondary">
+                Preview different amounts without changing this goal.
+              </span>
+            </span>
+            <span className="text-sm font-semibold text-primary">Simulator</span>
+          </Button>
+        </div>
+      </div>
       <ContributionDrawer
         open={contribute}
         onOpenChange={setContribute}
@@ -935,18 +1005,20 @@ export function FinancialHistoryPage({
   }
   if (!goal || !history)
     return (
-      <div className="mx-auto max-w-[390px] p-4">
+      <div className="mx-auto max-w-[390px] p-4 lg:max-w-[960px] lg:px-0 lg:pt-0">
         <p className="text-sm text-text-secondary">Loading history…</p>
       </div>
     );
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-[390px] px-4 pb-10 pt-3">
-      <header className="grid grid-cols-[44px_1fr_44px] items-center">
-        <Button variant="ghost" className="px-2" aria-label="Back" onClick={onBack}>
+    <div className="mx-auto min-h-dvh w-full max-w-[390px] px-4 pb-10 pt-3 lg:min-h-0 lg:max-w-[960px] lg:px-0 lg:pt-0">
+      <header className="grid grid-cols-[44px_1fr_44px] items-center lg:grid-cols-1">
+        <Button variant="ghost" className="px-2 lg:hidden" aria-label="Back" onClick={onBack}>
           <ArrowLeft className="size-4" />
         </Button>
-        <h1 className="truncate text-center text-lg font-semibold">{goal.name} · history</h1>
-        <span />
+        <h1 className="truncate text-center text-lg font-semibold lg:text-left lg:text-[27px]">
+          {goal.name} · history
+        </h1>
+        <span className="lg:hidden" />
       </header>
       <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
         {[
@@ -989,75 +1061,15 @@ export function FinancialHistoryPage({
           <HistoryRows rows={history.transactions} currency={goal.currency} onOpen={open} />
         </CardContent>
       </Card>
-      <Drawer
+      <ResponsiveOverlay
         open={Boolean(selected)}
         onOpenChange={(openValue) =>
           !openValue && !pending && !reconciling && setSelected(undefined)
         }
-      >
-        <DrawerContent className="mx-auto max-h-[92dvh] max-w-[390px] rounded-t-[22px] border-border bg-raised shadow-sheet">
-          <DrawerHeader>
-            <DrawerTitle>
-              {selected ? `Edit ${transactionTitle(selected).toLowerCase()}` : 'Edit transaction'}
-            </DrawerTitle>
-            <DrawerDescription>
-              Totals update only after the full history remains valid.
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="space-y-4 overflow-y-auto px-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="edit-amount">Amount</Label>
-                <MoneyInput
-                  id="edit-amount"
-                  currency={goal.currency}
-                  value={amount}
-                  onChange={(event) => setAmount(event.target.value)}
-                  disabled={pending || reconciling}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-date">Date</Label>
-                <DatePicker
-                  id="edit-date"
-                  label="Date"
-                  maxDate={dateFromIso(today())}
-                  value={dateFromIso(date)}
-                  onChange={(value) => setDate(isoFromDate(value))}
-                  disabled={pending || reconciling}
-                />
-              </div>
-            </div>
-            {error ? (
-              <Alert variant={unknownResult ? 'default' : 'error'}>
-                <AlertTitle>
-                  {unknownResult ? 'Result unknown' : 'That change would break your history'}
-                </AlertTitle>
-                <AlertDescription>
-                  {error}
-                  {!unknownResult ? ' Nothing has been changed.' : ''}
-                </AlertDescription>
-              </Alert>
-            ) : null}
-            {overageRequired ? (
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  disabled={pending || reconciling}
-                  onClick={() => void save('keep_target')}
-                >
-                  Keep target
-                </Button>
-                <Button
-                  disabled={pending || reconciling}
-                  onClick={() => void save('increase_target')}
-                >
-                  Increase target
-                </Button>
-              </div>
-            ) : null}
-          </div>
-          <DrawerFooter className="grid grid-cols-[auto_1fr] gap-2">
+        title={selected ? `Edit ${transactionTitle(selected).toLowerCase()}` : 'Edit transaction'}
+        description="Totals update only after the full history remains valid."
+        footer={
+          <div className="grid w-full grid-cols-[auto_1fr] gap-2">
             {selected?.kind === 'contribution' || selected?.kind === 'withdrawal' ? (
               <Button
                 variant="outline"
@@ -1074,9 +1086,63 @@ export function FinancialHistoryPage({
             >
               {pending || reconciling ? 'Checking…' : 'Save change'}
             </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+          </div>
+        }
+      >
+        <div className="space-y-4 overflow-y-auto px-4 lg:px-0">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="edit-amount">Amount</Label>
+              <MoneyInput
+                id="edit-amount"
+                currency={goal.currency}
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+                disabled={pending || reconciling}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-date">Date</Label>
+              <DatePicker
+                id="edit-date"
+                label="Date"
+                maxDate={dateFromIso(today())}
+                value={dateFromIso(date)}
+                onChange={(value) => setDate(isoFromDate(value))}
+                disabled={pending || reconciling}
+              />
+            </div>
+          </div>
+          {error ? (
+            <Alert variant={unknownResult ? 'default' : 'error'}>
+              <AlertTitle>
+                {unknownResult ? 'Result unknown' : 'That change would break your history'}
+              </AlertTitle>
+              <AlertDescription>
+                {error}
+                {!unknownResult ? ' Nothing has been changed.' : ''}
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          {overageRequired ? (
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                disabled={pending || reconciling}
+                onClick={() => void save('keep_target')}
+              >
+                Keep target
+              </Button>
+              <Button
+                disabled={pending || reconciling}
+                onClick={() => void save('increase_target')}
+              >
+                Increase target
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </ResponsiveOverlay>
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
