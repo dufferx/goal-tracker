@@ -68,6 +68,12 @@ Read in this order:
 8. [Design system](docs/design/GoalTracker_Design_System.md)
 9. [Contributor guide](AGENTS.md)
 
+## Operating a deployment
+
+- [Operator guide](docs/GoalTracker_Operator_Guide.md) — deploy and operate the managed stack
+  (Supabase Cloud, Render or Railway, Vercel), plus the self-hosted appendix.
+- [Release notes](docs/GoalTracker_Release_Notes.md) — versioned release history.
+
 The root `feature-requirements.md` and `implementation-plan.md` preserve the approved discovery
 conversation and detailed requirement mapping. Canonical documents under `docs/` govern execution.
 
@@ -91,12 +97,12 @@ pnpm build
 git diff --check
 ```
 
-Environment and deployment instructions will be finalized in M6. Until then, do not infer
-production readiness from the repository foundation.
+Environment and deployment instructions are documented in the
+[operator guide](docs/GoalTracker_Operator_Guide.md). Deployed-environment smoke tests run with
+`pnpm test:smoke` (requires the deployed API and web URLs).
 
 M1 authentication and recovery configuration is documented in
-[Identity operations](docs/GoalTracker_Identity_Operations.md). It is an early operational guide;
-M6 still owns production hardening.
+[Identity operations](docs/GoalTracker_Identity_Operations.md).
 
 ## Contributing
 
