@@ -6,6 +6,7 @@ export const deploymentCapabilitiesSchema = z
   .object({
     registrationEnabled: z.boolean(),
     passwordRecoveryEmailEnabled: z.boolean(),
+    version: z.string(),
   })
   .strict();
 

@@ -5,3 +5,6 @@
 coverage
 .env
 supabase/.temp
+test-results
+playwright-report
+**/*.tsbuildinfo

@@ -222,6 +222,7 @@ export function createDesignPreviewDependencies(state: string): {
     getCapabilities: async () => ({
       registrationEnabled: state !== 'public-disabled',
       passwordRecoveryEmailEnabled: true,
+      version: '1.0.0',
     }),
     getProfile: async () => profile,
     updateProfile: async (_session, input) => ({ ...profile, ...input }),

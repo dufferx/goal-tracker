@@ -67,6 +67,7 @@ describe('GET /api/v1/capabilities', () => {
       deploymentCapabilities: {
         registrationEnabled: true,
         passwordRecoveryEmailEnabled: false,
+        version: '1.0.0',
       },
     });
     servers.push(server);
@@ -80,6 +81,7 @@ describe('GET /api/v1/capabilities', () => {
     expect(response.json()).toEqual({
       registrationEnabled: true,
       passwordRecoveryEmailEnabled: false,
+      version: '1.0.0',
     });
   });
 });

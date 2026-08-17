@@ -156,8 +156,9 @@ Add success, failure, boundary, concurrency, and isolation coverage at the appro
 - API tests for authentication, authorization, validation, and financial mutations;
 - web tests for visible states and accessibility;
 - end-to-end tests for Japan and home-gym journeys;
-- deployed-environment smoke tests in M6; the self-hosted backup/restore rehearsal belongs to the
-  documented self-hosted option.
+- deployed-environment smoke tests in M6 (`pnpm test:smoke` with `SMOKE_API_URL` and
+  `SMOKE_WEB_URL`); the self-hosted backup/restore rehearsal belongs to the documented self-hosted
+  option.
 
 Before declaring completion, run and report:
 

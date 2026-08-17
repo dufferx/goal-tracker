@@ -10,6 +10,7 @@ import { simulationReportFixture } from './test/fixtures';
 const capabilities = {
   registrationEnabled: true,
   passwordRecoveryEmailEnabled: true,
+  version: '1.0.0',
 } as DeploymentCapabilities;
 
 const profile = {
@@ -218,6 +219,24 @@ describe('M1 web identity flows', () => {
       }),
     );
     expect(await screen.findByText('Settings saved.')).toBeInTheDocument();
+  });
+
+  it('shows the deployment version in the about-this-deployment card', async () => {
+    window.history.replaceState({}, '', '/settings');
+    const session = { accessToken: 'access-token', email: 'alex@example.com' };
+    render(
+      <App
+        auth={authMock({ restoreSession: vi.fn().mockResolvedValue(session) })}
+        api={apiMock()}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeInTheDocument();
+
+    const version = await screen.findByText('1.0.0');
+    expect(version).toBeInTheDocument();
+    expect(screen.getByText('Registration')).toBeInTheDocument();
+    expect(screen.getByText('Password reset email')).toBeInTheDocument();
   });
 
   it('clears protected UI when the API reports an expired session', async () => {

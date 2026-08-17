@@ -10,7 +10,7 @@ import { readApiConfig } from './config.js';
 import { buildServer } from './server.js';
 
 const config = readApiConfig(process.env);
-const database = createDatabase(config.databaseUrl);
+const database = createDatabase(config.databaseUrl, { ssl: config.databaseSsl });
 const server = buildServer({
   allowedWebOrigin: config.allowedWebOrigin,
   authVerifier: createSupabaseAuthVerifier(config.supabaseUrl, config.supabasePublishableKey),
@@ -25,6 +25,15 @@ const host = process.env.API_HOST ?? '127.0.0.1';
 server.addHook('onClose', async () => {
   await database.close();
 });
+
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.once(signal, () => {
+    void server.close().then(
+      () => process.exit(0),
+      () => process.exit(1),
+    );
+  });
+}
 
 try {
   await server.listen({ host, port });
