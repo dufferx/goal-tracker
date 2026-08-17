@@ -119,7 +119,7 @@ Current audit notes and the complete 390px/1280px capture set are stored under
 [`implementation/m5b/`](implementation/m5b/).
 The user explicitly accepted this final capture set on 2026-08-04. The M5B visual gate is closed.
 
-### M6 — Self-hosted release
+### M6 — Managed deployment and release hardening
 
 | Reference | Artifact ID | States represented |
 | --- | --- | --- |

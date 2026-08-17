@@ -402,18 +402,27 @@ actions are explicit, and both critical journeys work on mobile and desktop. Acc
 manual keyboard validation, end-to-end journeys, repository validation, and the final complete-set
 visual review pass with no unexplained divergence.
 
-## M6 — Hardening and self-hosted release
+## M6 — Managed deployment and release hardening
 
-**Goal:** Produce a reproducible, supportable self-hosted release.
+**Goal:** Produce a reproducible, supportable managed-deployment release on the reference stack:
+Vercel for the web, a Docker container on Render or Railway for the API, and Supabase Cloud for
+PostgreSQL and Auth.
 
-**Suggested branch:** `chore/self-hosted-release`
+**Suggested branch:** `chore/managed-deployment-release`
 
 ### Changes
 
-- production Docker Compose and reverse-proxy example with pinned versions;
+- production start command for the API container (the current `apps/api/Dockerfile` CMD runs the
+  development server);
 - environment validation and safe public/server variable separation;
-- signup, SMTP, TLS, secrets, backup, restore, upgrade, and rollback documentation;
 - observability with request IDs and non-sensitive structured logs;
+- operator documentation for the managed stack: Supabase Cloud project creation, migration
+  application with `supabase db push`, Auth and SMTP configuration in Supabase Cloud, API
+  deployment on Render or Railway (environment variables, health check), web deployment on Vercel
+  (build-time `VITE_*` variables), platform-managed domains and TLS, and Supabase Cloud backups
+  with plan limitations such as free-tier inactivity pauses;
+- self-hosted deployment documentation retained as an appendix option (Docker Compose, reverse
+  proxy, own TLS, own backup/restore) without additional MVP hardening;
 - dependency, image, migration, and security review;
 - release notes and operator checklist.
 
@@ -425,16 +434,16 @@ visual review pass with no unexplained divergence.
 
 ### Tests
 
-- clean-machine installation and smoke test;
-- backup/restore rehearsal;
 - production build and container health checks;
+- deployed-environment smoke test;
 - full RLS, API, domain, web, end-to-end, and accessibility suites.
 
 ### Exit criteria
 
-A new operator can deploy from documented instructions, create isolated users, restore a backup, and
-complete both reference journeys without unpublished knowledge. Deployment-dependent UI conforms to
-the mapped references.
+A new operator can deploy the managed stack from documented instructions — Supabase Cloud project,
+API on Render or Railway, web on Vercel — create isolated users, and complete both reference
+journeys without unpublished knowledge. The self-hosted option is documented as an appendix with
+its own backup/restore rehearsal. Deployment-dependent UI conforms to the mapped references.
 
 ## Requirement coverage
 

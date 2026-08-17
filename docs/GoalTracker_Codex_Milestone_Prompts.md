@@ -89,12 +89,18 @@ These prompts are execution checklists, not independent sources of product truth
 > Japan Trip and Home Gym end-to-end journeys. Correct unexplained drift against the complete
 > reference set; do not redesign the accepted M5A compositions or add product features.
 
-## M6 — Self-hosted release
+## M6 — Managed deployment and release hardening
 
-> Work only on M6 after M5B passes. Produce pinned, production-oriented self-hosting configuration;
-> environment validation; TLS, signup, SMTP, secrets, infrastructure backup, restore, upgrade,
-> rollback, logging, and operator documentation; and clean-install/recovery tests. Review current
-> upstream breaking changes rather than relying on old image or gateway assumptions.
+> Work only on M6 after M5B passes. Produce a production start command for the API Docker
+> container; environment validation with safe public/server variable separation; and observability
+> with request IDs and non-sensitive structured logs. Document the managed reference stack for a
+> new operator: Supabase Cloud project creation and `supabase db push` migrations, Auth and SMTP
+> configuration in Supabase Cloud, API deployment on Render or Railway (environment variables,
+> health check), web deployment on Vercel (build-time `VITE_*` variables), platform-managed domains
+> and TLS, and Supabase Cloud backups with plan limitations such as free-tier inactivity pauses.
+> Keep the self-hosted deployment documented as an appendix option without additional hardening.
+> Validate with production builds, container health checks, and a deployed-environment smoke test,
+> and close with release notes and an operator checklist.
 
 ## Completion instruction
 

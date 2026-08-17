@@ -1,8 +1,9 @@
 # Goal Tracker — Identity Operations
 
 **Milestone:** M1 identity and user isolation
-**Scope:** Development and early self-hosted operation. Production hardening, TLS, backup, restore,
-and upgrades remain M6 work.
+**Scope:** Development and early operation on both the managed reference deployment (Supabase
+Cloud) and the documented self-hosted option. Production hardening, TLS, backup, restore, and
+upgrades remain M6 work.
 
 ## Configuration boundary
 
@@ -65,6 +66,15 @@ pnpm --filter @goal-tracker/api test:m1:integration
 The privileged key is used only to create and clean up test users. Assertions access
 `public.profiles` as two ordinary authenticated users and an anonymous client, proving provisioning,
 constraints, own-row access, cross-user denial, and anonymous denial through real RLS.
+
+## Managed reference deployment
+
+In the reference deployment, Auth, registration, SMTP, site URL, and redirect configuration live in
+the Supabase Cloud project settings (Authentication and email sections), not in deployment
+environment variables. The same Goal Tracker capability flags apply: publish
+`PUBLIC_REGISTRATION_ENABLED` and `PUBLIC_PASSWORD_RECOVERY_EMAIL_ENABLED` through the API
+environment so they match the Supabase Cloud configuration. The sections below describe the
+equivalent self-hosted Auth configuration and remain valid for the documented self-hosted option.
 
 ## Self-hosted registration
 

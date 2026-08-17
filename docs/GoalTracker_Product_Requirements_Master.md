@@ -8,7 +8,8 @@ simulations, and snapshot-driven progress.
 
 ## 1. Product
 
-Goal Tracker is a small, open-source, self-hosted web application for answering four questions:
+Goal Tracker is a small, open-source, private multi-user web application for answering four
+questions:
 
 1. How much money have I funded toward each goal?
 2. How much remains available or has already been spent?
@@ -28,7 +29,10 @@ The initial reference cases are:
 - The application supports multiple accounts even when a deployment has only a few users.
 - Every user's goals, items, transactions, preferences, and derived results are private.
 - Authentication uses Supabase email and password.
-- Self-hosters decide whether public registration is enabled.
+- The reference deployment is managed: Vercel hosts the web, a Docker container on Render or
+  Railway runs the API, and Supabase Cloud provides PostgreSQL and Auth. Self-hosting remains a
+  documented option.
+- The operator of a deployment decides whether public registration is enabled.
 - Password recovery uses configured SMTP when available. A deployment without SMTP must document a
   manual administrator-assisted reset procedure; the UI must not promise email delivery.
 - There are no shared goals, organizations, teams, roles, or admin UI in the MVP.
@@ -46,7 +50,9 @@ The initial reference cases are:
 - current totals, remaining amount, pace status, estimate, and explanation;
 - temporary, contribution-only simulations with item-affordability reporting;
 - responsive web experience;
-- versioned self-hosted deployment plus infrastructure backup and restore documentation.
+- versioned managed deployment (Vercel web, API container on Render or Railway, Supabase Cloud)
+  plus operator documentation, with a documented self-hosted option including its own backup and
+  restore guidance.
 
 ### Explicitly excluded
 

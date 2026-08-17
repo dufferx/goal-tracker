@@ -1,6 +1,8 @@
 # Goal Tracker — Codex Standing Prompt
 
-Build Goal Tracker as a deliberately small, private, self-hosted goal and budget tracker.
+Build Goal Tracker as a deliberately small, private, multi-user goal and budget tracker. The
+reference deployment is managed — Vercel for the web SPA, a Docker container on Render or Railway
+for the API, and Supabase Cloud for PostgreSQL and Auth; self-hosting remains a documented option.
 
 Before acting, read in order:
 

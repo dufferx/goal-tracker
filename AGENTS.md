@@ -35,7 +35,9 @@ technical architecture governs implementation. Surface genuine conflicts before 
 
 ## Product boundary
 
-The MVP is a private, multi-user, self-hosted goal and budget tracker:
+The MVP is a private, multi-user goal and budget tracker whose reference deployment is managed —
+Vercel for the web SPA, a Docker container on Render or Railway for the API, and Supabase Cloud for
+PostgreSQL and Auth. Self-hosting with Docker Compose remains a supported, documented option:
 
 - a goal is the primary aggregate;
 - goals have fixed or item-derived targets;
@@ -71,8 +73,10 @@ docs/
 tests/
 ```
 
-Docker Compose is the reference environment. Supabase provides PostgreSQL and Auth. Drizzle provides
-typed access but never manages migrations.
+Docker Compose is the local development environment. The reference production deployment is
+managed: Vercel serves the web SPA, Render or Railway runs the API Docker container, and Supabase
+Cloud provides PostgreSQL and Auth. Self-hosting with Docker Compose and self-hosted Supabase
+remains a supported, documented option. Drizzle provides typed access but never manages migrations.
 
 ## Dependency boundaries
 
@@ -152,7 +156,8 @@ Add success, failure, boundary, concurrency, and isolation coverage at the appro
 - API tests for authentication, authorization, validation, and financial mutations;
 - web tests for visible states and accessibility;
 - end-to-end tests for Japan and home-gym journeys;
-- self-hosting, backup, and restore tests in M6.
+- deployed-environment smoke tests in M6; the self-hosted backup/restore rehearsal belongs to the
+  documented self-hosted option.
 
 Before declaring completion, run and report:
 
