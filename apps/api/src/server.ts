@@ -11,6 +11,7 @@ import type {
   ProfileRepository,
 } from '@goal-tracker/database';
 import Fastify from 'fastify';
+import { randomUUID } from 'node:crypto';
 
 import type { AuthVerifier } from './auth.js';
 import { requireOwnerId } from './auth-guard.js';
@@ -116,7 +117,19 @@ function clientErrorStatus(error: unknown): number | undefined {
 
 export function buildServer(dependencies: ServerDependencies = {}) {
   const server = Fastify({
-    logger: process.env.NODE_ENV !== 'test',
+    genReqId: (request) => {
+      const incoming = request.headers['x-request-id'];
+      return typeof incoming === 'string' && incoming.trim() ? incoming : randomUUID();
+    },
+    logger:
+      process.env.NODE_ENV === 'test'
+        ? false
+        : {
+            redact: {
+              censor: '[redacted]',
+              paths: ['req.headers.authorization', 'req.headers.cookie'],
+            },
+          },
   });
   const authVerifier = dependencies.authVerifier ?? unavailableAuthVerifier;
   const profileRepository = dependencies.profileRepository ?? unavailableProfileRepository;
@@ -130,6 +143,7 @@ export function buildServer(dependencies: ServerDependencies = {}) {
     dependencies.deploymentCapabilities ?? {
       registrationEnabled: false,
       passwordRecoveryEmailEnabled: false,
+      version: '0.0.0-unconfigured',
     },
   );
 
