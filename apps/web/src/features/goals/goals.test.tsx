@@ -68,6 +68,7 @@ function apiMock(overrides: Partial<GoalTrackerApi> = {}): GoalTrackerApi {
     getCapabilities: vi.fn().mockResolvedValue({
       registrationEnabled: true,
       passwordRecoveryEmailEnabled: true,
+      version: '1.0.0',
     }),
     getProfile: vi.fn().mockResolvedValue(profile),
     updateProfile: vi.fn().mockResolvedValue(profile),

@@ -977,7 +977,7 @@ function SettingsPage({
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between gap-4">
                 <dt className="text-text-secondary">Version</dt>
-                <dd data-date>development</dd>
+                <dd data-date>{capabilities.version}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-text-secondary">Registration</dt>
@@ -991,7 +991,8 @@ function SettingsPage({
               </div>
             </dl>
             <p className="mt-3 text-sm leading-5 text-text-tertiary">
-              Backups are managed by the person who runs this deployment.
+              Backups are handled by whoever runs this server, not from inside the app. The
+              deployment documentation explains how they're taken and restored.
             </p>
           </CardContent>
         </Card>
