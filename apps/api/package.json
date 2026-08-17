@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsx watch --env-file=../../.env src/main.ts",
     "dev:e2e": "tsx watch --env-file=../../.env src/main.ts",
-    "start": "node --env-file=../../.env dist/main.js",
+    "start": "node dist/main.js",
     "test": "vitest run",
     "test:m1:integration": "vitest run src/m1-supabase.integration.test.ts",
     "test:m2:integration": "vitest run src/m2-supabase.integration.test.ts",

@@ -26,8 +26,11 @@ export { createProfileRepository } from './profile-repository.js';
 export type { ProfileRecord, ProfileRepository } from './profile-repository.js';
 export { goalItems, goals, goalStatusEnum, goalTargetModeEnum, profiles } from './schema.js';
 
-export function createDatabase(connectionString: string) {
-  const pool = new Pool({ connectionString });
+export function createDatabase(connectionString: string, options: { ssl?: boolean } = {}) {
+  const pool = new Pool({
+    connectionString,
+    ...(options.ssl ? { ssl: { rejectUnauthorized: false } } : {}),
+  });
 
   return {
     db: drizzle(pool, { schema }),

@@ -2,6 +2,7 @@ import type { DeploymentCapabilities } from '@goal-tracker/contracts';
 
 export interface ApiConfig {
   allowedWebOrigin: string;
+  databaseSsl: boolean;
   databaseUrl: string;
   deploymentCapabilities: DeploymentCapabilities;
   supabasePublishableKey: string;
@@ -21,6 +22,20 @@ function requireEnvironmentValue(
   return value;
 }
 
+function requireUrl(environment: NodeJS.ProcessEnv, name: keyof NodeJS.ProcessEnv): string {
+  const value = requireEnvironmentValue(environment, name);
+
+  try {
+    new URL(value);
+  } catch {
+    throw new Error(`${name} must be a valid URL.`);
+  }
+
+  // Origins are compared literally against the Origin header, which never carries a trailing
+  // slash; keep the configured value free of trailing slashes.
+  return value.replace(/\/+$/, '');
+}
+
 function readBoolean(environment: NodeJS.ProcessEnv, name: keyof NodeJS.ProcessEnv): boolean {
   const value = requireEnvironmentValue(environment, name);
 
@@ -37,7 +52,8 @@ function readBoolean(environment: NodeJS.ProcessEnv, name: keyof NodeJS.ProcessE
 
 export function readApiConfig(environment: NodeJS.ProcessEnv): ApiConfig {
   return {
-    allowedWebOrigin: requireEnvironmentValue(environment, 'WEB_ORIGIN'),
+    allowedWebOrigin: requireUrl(environment, 'WEB_ORIGIN'),
+    databaseSsl: readBoolean(environment, 'DATABASE_SSL'),
     databaseUrl: requireEnvironmentValue(environment, 'DATABASE_URL'),
     deploymentCapabilities: {
       registrationEnabled: readBoolean(environment, 'PUBLIC_REGISTRATION_ENABLED'),
@@ -45,8 +61,9 @@ export function readApiConfig(environment: NodeJS.ProcessEnv): ApiConfig {
         environment,
         'PUBLIC_PASSWORD_RECOVERY_EMAIL_ENABLED',
       ),
+      version: requireEnvironmentValue(environment, 'APP_VERSION'),
     },
     supabasePublishableKey: requireEnvironmentValue(environment, 'SUPABASE_PUBLISHABLE_KEY'),
-    supabaseUrl: requireEnvironmentValue(environment, 'SUPABASE_URL'),
+    supabaseUrl: requireUrl(environment, 'SUPABASE_URL'),
   };
 }
