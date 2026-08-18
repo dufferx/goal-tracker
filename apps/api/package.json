@@ -5,12 +5,20 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "dev": "tsx watch src/main.ts",
+    "dev": "tsx watch --env-file=../../.env src/main.ts",
+    "dev:e2e": "tsx watch --env-file=../../.env src/main.ts",
     "start": "node dist/main.js",
     "test": "vitest run",
+    "test:m1:integration": "vitest run src/m1-supabase.integration.test.ts",
+    "test:m2:integration": "vitest run src/m2-supabase.integration.test.ts",
+    "test:m3:integration": "vitest run src/m3-supabase.integration.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@goal-tracker/contracts": "workspace:*",
+    "@goal-tracker/database": "workspace:*",
+    "@goal-tracker/domain": "workspace:*",
+    "@supabase/supabase-js": "2.111.0",
     "fastify": "5.10.0"
   },
   "devDependencies": {

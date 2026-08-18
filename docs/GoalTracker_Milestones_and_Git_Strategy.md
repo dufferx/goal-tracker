@@ -9,14 +9,20 @@
 | Milestone | Purpose | Suggested branch |
 |---|---|---|
 | D0 | Simplified product documentation reset | `docs/simplified-product-reset` |
+| D1 | Design implementation baseline | `docs/design-implementation-baseline` |
 | M1 | Identity and cross-user isolation | `feat/identity-isolation` |
 | M2 | Goals and item planning | `feat/goals-items` |
+| M2.1 | M1/M2 visual conformance recovery | `feat/goals-items` |
 | M3 | Financial ledger and history | `feat/financial-ledger` |
 | M4 | Guidance and temporary simulation | `feat/guidance-simulation` |
-| M5 | Integrated product UX | `feat/product-ux` |
-| M6 | Self-hosted hardening and release | `chore/self-hosted-release` |
+| M5A | Responsive architecture and desktop composition | `feat/product-ux-responsive` |
+| M5B | Integrated UX, accessibility, and journey quality | `feat/product-ux-quality` |
+| M6 | Managed deployment and release hardening | `chore/managed-deployment-release` |
 
 The detailed scope and exit criteria are in `GoalTracker_Implementation_Plan.md`.
+
+M5A and M5B are separate, sequential delivery milestones. M5A receives its own pull request and
+must pass the documented visual gate before the M5B branch is created from updated `development`.
 
 ## Branch workflow
 
@@ -41,7 +47,7 @@ docs(product): establish simplified goal model
 feat(goals): add fixed and item-derived planning
 feat(finance): add replay-safe financial ledger
 test(rls): prove cross-user isolation
-chore(release): pin self-hosted service versions
+chore(release): configure managed deployment environment
 ```
 
 Prefer small commits that leave the branch valid and represent one coherent change. Do not create
@@ -71,7 +77,7 @@ No PR is created, published, merged, or retargeted without explicit user authori
 
 ## Releases
 
-Use semantic versioning after M6 establishes the first deployable release. A release includes pinned
-container/application versions, migrations, operator notes, backup compatibility, and known
-limitations. Upgrades must review current Supabase and PostgreSQL breaking changes before changing
-pins.
+Use semantic versioning after M6 establishes the first deployable release. A release includes the
+API container version and web build, migrations, operator notes, and known limitations, including
+managed-platform plan limits. Upgrades must review current Supabase breaking changes before
+upgrading dependencies or, for the self-hosted option, changing image pins.

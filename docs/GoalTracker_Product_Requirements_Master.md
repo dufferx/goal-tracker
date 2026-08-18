@@ -8,7 +8,8 @@ simulations, and snapshot-driven progress.
 
 ## 1. Product
 
-Goal Tracker is a small, open-source, self-hosted web application for answering four questions:
+Goal Tracker is a small, open-source, private multi-user web application for answering four
+questions:
 
 1. How much money have I funded toward each goal?
 2. How much remains available or has already been spent?
@@ -28,7 +29,10 @@ The initial reference cases are:
 - The application supports multiple accounts even when a deployment has only a few users.
 - Every user's goals, items, transactions, preferences, and derived results are private.
 - Authentication uses Supabase email and password.
-- Self-hosters decide whether public registration is enabled.
+- The reference deployment is managed: Vercel hosts the web, a Docker container on Render or
+  Railway runs the API, and Supabase Cloud provides PostgreSQL and Auth. Self-hosting remains a
+  documented option.
+- The operator of a deployment decides whether public registration is enabled.
 - Password recovery uses configured SMTP when available. A deployment without SMTP must document a
   manual administrator-assisted reset procedure; the UI must not promise email delivery.
 - There are no shared goals, organizations, teams, roles, or admin UI in the MVP.
@@ -46,7 +50,9 @@ The initial reference cases are:
 - current totals, remaining amount, pace status, estimate, and explanation;
 - temporary, contribution-only simulations with item-affordability reporting;
 - responsive web experience;
-- versioned self-hosted deployment plus infrastructure backup and restore documentation.
+- versioned managed deployment (Vercel web, API container on Render or Railway, Supabase Cloud)
+  plus operator documentation, with a documented self-hosted option including its own backup and
+  restore guidance.
 
 ### Explicitly excluded
 
@@ -156,8 +162,13 @@ increase or decrease.
 - IDs are UUID v4 values.
 - Every mutation is authorized and executed by the backend; the browser never inserts ledger rows
   directly.
-- Retry protection relies on committed transaction state plus disabled/submitting UI controls. The
-  MVP does not introduce an offline or idempotency subsystem.
+- A financial submission produces one request. Its controls remain disabled while pending and the
+  client never retries it automatically.
+- If the connection fails before success can be confirmed, the app reports that the result is
+  unknown, preserves the form input, and refreshes the goal history before another submission is
+  allowed. This distinguishes an unconfirmed commit from a known rejection without introducing
+  duplicate contributions.
+- The MVP has no offline writes, service worker, sync queue, idempotency keys, or idempotency table.
 
 ### 5.2 Editing and correcting
 
@@ -208,6 +219,9 @@ If an item is already purchased, its obligation is satisfied by its actual purch
 purchased after its due month, history remains truthful and the current recommendation uses the
 remaining future obligations.
 
+The goal-detail timeline keeps satisfied due-item milestones visible and marks them as funded or
+purchased instead of removing them when guidance advances to the next obligation.
+
 ### 6.3 Open goals
 
 A goal without any future due month or final month has no deadline-based required pace.
@@ -245,7 +259,9 @@ Simulation is an in-memory report. It never creates, updates, or purchases anyth
 - The user may define up to three sequential future phases.
 - Each phase specifies a number of calendar months and a hypothetical amount per contribution. The
   goal frequency applies that amount once or twice in each simulated month.
+- A phase may use a zero contribution to represent one or more months without saving.
 - The final phase may optionally continue until the next item deadline or the final target.
+  Automatic continuation requires a contribution greater than zero.
 - Only contributions are simulated.
 - The report shows projected funded and available money by month, expected target completion when
   calculable, and the month in which each unpurchased item becomes affordable.

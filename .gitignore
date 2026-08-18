@@ -1,11 +1,16 @@
 node_modules/
 dist/
 coverage/
+playwright-report/
+test-results/
 .env
 .env.*
 !.env.example
 *.log
 *.tsbuildinfo
+
+# Root-level design prototypes and their offline copies
+/GoalTracker*.html
 
 # Vite
 apps/web/.vite/

@@ -2,6 +2,9 @@ packages:
   - apps/*
   - packages/*
 
+overrides:
+  esbuild: '>=0.28.1'
+
 onlyBuiltDependencies:
   - esbuild
   - supabase

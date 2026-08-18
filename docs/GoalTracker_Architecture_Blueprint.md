@@ -108,6 +108,11 @@ sequenceDiagram
 
 An invalid historical prefix rolls back the whole command.
 
+The web sends each financial command once and disables its form while pending. It does not
+automatically replay a command whose response is lost. When the result is unknown, it reloads the
+goal detail and ordered history before enabling another submission. This reconciliation uses
+committed ledger state and requires no offline queue or idempotency storage.
+
 ### Purchase and undo
 
 The API locks the goal, loads the item and full ledger, verifies ownership and state, then asks the
@@ -149,23 +154,26 @@ authenticated database users from crossing ownership boundaries.
 
 ## 7. Deployment boundary
 
+The reference deployment is managed:
+
 ```mermaid
 flowchart TB
-    RP[HTTPS reverse proxy]
-    RP --> WEB[Static web container]
-    RP --> API[API container]
-    RP --> SB[Version-pinned Supabase gateway]
-    SB --> AUTH[Auth service]
+    V[Vercel — static web SPA]
+    R[Render or Railway — API container]
+    SB[Supabase Cloud]
+    SB --> AUTH[Auth]
     SB --> PG[(PostgreSQL)]
-    API --> AUTH
-    API --> PG
-    BK[Backup job] --> PG
-    BK --> CFG[Encrypted deployment configuration backup]
+    V --> R
+    V --> SB
+    R --> AUTH
+    R --> PG
 ```
 
-Public routes, Supabase gateway paths, and external URLs are environment-driven. Images are pinned
-and upgrades are deliberate. A deployment is incomplete until signup policy, recovery behavior,
-secrets, TLS, backup, and restore are documented and tested.
+Public routes, project URLs, and external URLs are environment-driven; the platforms terminate TLS
+and Supabase Cloud manages backups. A deployment is incomplete until signup policy, recovery
+behavior, secrets, and platform plan limitations are documented. The self-hosted option replaces
+the managed services with pinned Docker images behind a reverse proxy and its own backup and
+restore rehearsal; it is documented as an appendix without additional MVP hardening.
 
 ## 8. Change rule
 

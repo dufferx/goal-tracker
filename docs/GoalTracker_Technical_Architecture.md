@@ -7,7 +7,7 @@
 
 ## 1. Architecture goals
 
-The architecture optimizes for a small self-hosted product:
+The architecture optimizes for a small private product with a managed reference deployment:
 
 - one clear path for each business rule;
 - a reconstructable ledger instead of multiple sources of monetary truth;
@@ -34,8 +34,11 @@ supabase/
   config.toml
 ```
 
-Docker Compose is the reference local and self-hosted environment. Supabase supplies PostgreSQL and
-Auth. Drizzle supplies typed access only; it never creates or manages migrations.
+Docker Compose is the reference local development environment. The reference production deployment
+is managed: Vercel serves the web SPA, Render or Railway runs the API Docker container, and
+Supabase Cloud supplies PostgreSQL and Auth. Self-hosting with Docker Compose and self-hosted
+Supabase remains a documented option. Drizzle supplies typed access only; it never creates or
+manages migrations.
 
 ## 2. Dependency direction
 
@@ -202,9 +205,10 @@ an explicit command, never a generic accidental cascade from another resource.
 RLS is defense in depth because normal application access uses the API. Privileged backend access
 does not replace repository authorization.
 
-Registration is deployment configuration, not a product table. Self-hosted environments explicitly
-configure signup, external email, mailer auto-confirm, site URL, redirect allow-list, and SMTP
-behavior. The web app receives only public runtime configuration.
+Registration is deployment configuration, not a product table. In the managed reference deployment,
+signup, external email, mailer auto-confirm, site URL, redirect allow-list, and SMTP behavior are
+configured in the Supabase Cloud project settings; self-hosted environments set the equivalent Auth
+service variables explicitly. The web app receives only public runtime configuration.
 
 ## 8. Web boundary
 
@@ -212,20 +216,44 @@ React pages orchestrate API state and render domain results. They contain no aut
 or projection formulas. Server state uses one query/mutation layer with cache invalidation scoped to
 the affected goal.
 
-Offline behavior and service-worker caching are outside the MVP. Network-dependent actions show a
-clear connection error and preserve recoverable form input.
+Offline behavior, service-worker caching, mutation queues, and request idempotency are outside the
+MVP. A financial form sends one request and disables resubmission while it is pending. The query
+layer must not automatically retry financial mutations.
 
-## 9. Self-hosting and operations
+A known server rejection preserves recoverable form input and may be retried after correction. If a
+network failure leaves the commit result unknown, the web app shows an indeterminate-result error,
+refreshes the affected goal and history, and enables another submission only after reconciliation.
+No client-generated key, replay queue, or idempotency persistence is introduced.
 
-- Pin application, Supabase, PostgreSQL, and gateway image versions; do not deploy floating tags.
-- Keep deployment-specific URLs and gateway prefixes in environment configuration. Do not hardcode
-  assumptions about a particular Supabase gateway generation.
-- Terminate TLS at a reverse proxy in production.
-- Replace every example secret, restrict database exposure, and configure production SMTP when
-  email recovery is offered.
-- Back up PostgreSQL data and deployment configuration. Document a restore rehearsal.
-- Review Supabase breaking changes before upgrading, especially database-major and gateway changes.
-- Backups operate at the infrastructure/database level. App-level import/export is outside the MVP.
+## 9. Deployment and operations
+
+The reference deployment is a managed stack:
+
+- **Web:** Vercel serves the static Vite SPA. Public configuration is supplied through build-time
+  `VITE_*` variables; secret, service-role, database, SMTP, and JWT-signing values must never
+  appear in a `VITE_*` variable.
+- **API:** the `apps/api` Docker image runs as a container on Render or Railway with a production
+  start command, validated environment, and a health check. Keep deployment-specific URLs in
+  environment configuration; do not hardcode assumptions about a particular Supabase generation.
+- **Database and Auth:** Supabase Cloud. Migrations are applied with `supabase db push`; signup,
+  SMTP, site URL, and redirect allow-list are configured in the project settings.
+
+TLS is terminated by the platforms and custom domains are managed through them. Backups are managed
+by Supabase Cloud; operator documentation must state the plan limitations, including free-tier
+inactivity pauses and the available restore capabilities. Backups operate at the
+infrastructure/database level. App-level import/export is outside the MVP.
+
+### Self-hosted option
+
+Self-hosting with Docker Compose and self-hosted Supabase remains a supported, documented option
+without additional MVP hardening. Operators choosing it must:
+
+- pin application, Supabase, PostgreSQL, and gateway image versions; do not deploy floating tags;
+- terminate TLS at a reverse proxy in production;
+- replace every example secret, restrict database exposure, and configure production SMTP when
+  email recovery is offered;
+- back up PostgreSQL data and deployment configuration, and document a restore rehearsal;
+- review Supabase breaking changes before upgrading, especially database-major and gateway changes.
 
 Current upstream references:
 
@@ -255,7 +283,8 @@ Milestones add:
 - API integration tests for authentication, ownership, errors, and mutation replay;
 - web tests for critical states and accessibility;
 - end-to-end tests for the Japan and home-gym journeys;
-- backup/restore and self-hosted smoke tests before release.
+- deployed-environment smoke tests before release; the backup/restore rehearsal belongs to the
+  documented self-hosted option.
 
 ## 11. Superseded architecture
 
